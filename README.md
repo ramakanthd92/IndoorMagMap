@@ -1,0 +1,4 @@
+IndoorMag
+=========
+
+Indoor Magnitude 
