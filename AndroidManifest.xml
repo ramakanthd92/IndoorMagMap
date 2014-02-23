@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="in.ernet.iitr.puttauec"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="9"
+        android:targetSdkVersion="18" />
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name="in.ernet.iitr.puttauec.ui.DeadReckoningActivity"
+            android:label="@string/dead_reckoning_activity" >
+        </activity>
+         <service android:name=".ui.BroadcastService" />
+        <activity
+            android:name="in.ernet.iitr.puttauec.ui.DeadReckoningTrainingActivity"
+            android:label="@string/dead_reckoning_training_activity" >
+        </activity>
+        <activity
+            android:name="in.ernet.iitr.puttauec.ui.SensorLoggerActivity"
+            android:label="@string/sensor_logger_activity" >
+        </activity>
+        <activity
+            android:name="in.ernet.iitr.puttauec.ui.ScanActivity"
+            android:label="@string/title_activity_scan" >
+        </activity>
+        <activity
+            android:name="in.ernet.iitr.puttauec.ui.LaunchActivity"
+            android:label="@string/title_activity_launch"
+            android:parentActivityName="android.app.ListActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="android.app.ListActivity" />
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        
+    </application>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" >
+    </uses-permission>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" >
+    </uses-permission>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" >
+    </uses-permission>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" >
+    </uses-permission>
+    <uses-permission android:name="android.permission.WAKE_LOCK" >
+    </uses-permission>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" >
+    </uses-permission>
+
+</manifest>
