@@ -73,17 +73,17 @@ public class DeadReckoningActivity extends Activity {
 		int method = getIntent().getIntExtra(KEY_RECKONING_METHOD, METHOD_DEAD_RECKONING);
 		Log.i(TAG, "Starting DeadReckoningActivity with reckoning method: " + method);
 		mDeadReckoning = new DeadReckoning(this);
-		//intent = new Intent(this, BroadcastService.class);
+		intent = new Intent(this, BroadcastService.class);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 	}
    
-	/* private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+	 private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
 	        @Override
 	        public void onReceive(Context context, Intent intent) {
 	        	updateUI(intent);       
 	        }
 	    };  
-	  */  
+	   
 	  private void updateUI(Intent intent) {
 	    	float mstartx = mDeadReckoning.getmStartX();
 	    	float mstarty = mDeadReckoning.getmStartY();  
@@ -189,16 +189,16 @@ public class DeadReckoningActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 		mDeadReckoning.resume();
-		//startService(intent);
-		//registerReceiver(broadcastReceiver, new IntentFilter(BroadcastService.BROADCAST_ACTION));
+		startService(intent);
+		registerReceiver(broadcastReceiver, new IntentFilter(BroadcastService.BROADCAST_ACTION));
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
 		mDeadReckoning.pause();
-		//unregisterReceiver(broadcastReceiver);
-		//stopService(intent); 		
+		unregisterReceiver(broadcastReceiver);
+		stopService(intent); 		
 	}
 
 	@Override

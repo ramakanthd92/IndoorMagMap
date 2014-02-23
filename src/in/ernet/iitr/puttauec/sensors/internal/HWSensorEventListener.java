@@ -216,7 +216,7 @@ public class HWSensorEventListener implements SensorEventListener {
 				}
 				
 				break;
-		/*	case Sensor.TYPE_GYROSCOPE:
+			case Sensor.TYPE_GYROSCOPE:
 				if (mLastGyroTimestamp == 0) {
 					mLastGyroTimestamp = event.timestamp;
 				}
@@ -257,7 +257,7 @@ public class HWSensorEventListener implements SensorEventListener {
 				for(IHWSensorEventCallback callback : mCallbacks) {
 					callback.onMagneticFieldUpdate(mMagneticField, deltaT, mLastMagneticFieldTimestamp);
 				}
-				break; */
+				break;
 				
 			case Sensor.TYPE_ROTATION_VECTOR:
 				if (mLastRotationVectorTimestamp == 0) {
@@ -267,7 +267,7 @@ public class HWSensorEventListener implements SensorEventListener {
 				mLastRotationVectorTimestamp = event.timestamp;
 				mRotationVector = event.values.clone();
 				//updateRotationMatrices();
-				//Log.d(TAG,"RV");
+				Log.d(TAG,"RV");
 				
 				for(IHWSensorEventCallback callback : mCallbacks) {
 					callback.onRotationVectorUpdate(mRotationVector, deltaT, mLastRotationVectorTimestamp);
