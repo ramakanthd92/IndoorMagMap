@@ -208,7 +208,7 @@ public class HWSensorEventListener implements SensorEventListener {
 				mLastAccelTimestamp = event.timestamp;
 				mPrevAccel = mAccel;
 				mAccel = event.values.clone();
-				// updateTrueAccel();
+			    updateTrueAccel();
 				// updateVelocityAndDisplacement(deltaT);
 				
 				for(IHWSensorEventCallback callback : mCallbacks) {
@@ -278,7 +278,7 @@ public class HWSensorEventListener implements SensorEventListener {
 
 	private void updateRotationMatrices() {
 		SensorManager.getRotationMatrixFromVector(mRV,mRotationVector);
-		updateTrueAccel();
+		//updateTrueAccel();
 	}
 
 	private void updateTrueAccel() {

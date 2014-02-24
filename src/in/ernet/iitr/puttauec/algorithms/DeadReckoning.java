@@ -102,15 +102,18 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 				throw new RuntimeException(e);
 			}
 		}
-        System.out.println(String.valueOf(values[0])+" "+String.valueOf(values[1])+" "+String.valueOf(values[2]));
-		if(Math.abs(values[2]) < mAccelThreshold) {
-			values[0] = values[1] = values[2] = 0;
+        System.out.println("LA - " + String.valueOf(values[0])+" "+String.valueOf(values[1])+" "+String.valueOf(values[2]));
+		
+        if(Math.abs(values[2]) < mAccelThreshold) {
+			 values[0] = 0;
+			 values[1] = 0;
+			 values[2] = 0;
 		}
 
 		// Count local maxima
 		synchronized(mAccelHistory) {
 			float s0 = mAccelHistory.get(mAccelHistory.size()-2)[2], s1 = mAccelHistory.get(mAccelHistory.size()-1)[2], s2 = values[2];
-			
+			System.out.println("AH -"  + Float.valueOf(s0)+","+Float.valueOf(s1)+","+Float.valueOf(s2));
 			// Count peaks and valleys
 			if((s2 - s1)*(s1 - s0) < 0) {
 				if(s2 - s1 < 0 && s1 > 0) { // Peak Found
@@ -121,6 +124,8 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 						double stepSize = getStepSize();
 						double radAngle = getAngleRadians();
 						
+						System.out.println(stepSize);
+						System.out.println(radAngle);
 						if(this.isLogging()) {
 							try {
 								mStepLogFileWriter.write("" + timestamp + "," + deltaT + "," + stepSize + "," + Math.toDegrees(radAngle) + "\n");
@@ -157,8 +162,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 					}
 				}
 			}
-			
-			mAccelHistory.add(values);
+				mAccelHistory.add(values);
 			if(mAccelHistory.size() > MAX_HISTORY_SIZE) {
 				mAccelHistory.removeFirst();
 			}
