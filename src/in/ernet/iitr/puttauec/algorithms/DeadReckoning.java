@@ -102,7 +102,8 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 				throw new RuntimeException(e);
 			}
 		}
-        if(Math.abs(values[2]) < mAccelThreshold) {
+        System.out.println(String.valueOf(values[0])+" "+String.valueOf(values[1])+" "+String.valueOf(values[2]));
+		if(Math.abs(values[2]) < mAccelThreshold) {
 			values[0] = values[1] = values[2] = 0;
 		}
 
@@ -321,7 +322,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_MAGNETISM);
 		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_GRAVITY);
 		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_GYROSCOPE);
-	//	mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_ROTATION_VECTOR);
+		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_ROTATION_VECTOR);
 		
 	}
 
@@ -333,8 +334,8 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_ACCELEROMETER);
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_MAGNETISM);
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_GRAVITY);
-		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_GYROSCOPE);
-	//	mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_ROTATION_VECTOR);
+		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_GYROSCOPE);
+		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_ROTATION_VECTOR);
 	}
 
 	/* (non-Javadoc)

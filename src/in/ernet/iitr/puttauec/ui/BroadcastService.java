@@ -30,7 +30,7 @@ public class BroadcastService  extends Service {
     private Runnable sendUpdatesToUI = new Runnable() {
     	public void run() {
     		DisplayLoggingInfo();    		
-    	    handler.postDelayed(this, 10000); // 10 seconds
+    	    handler.postDelayed(this, 2000); // 10 seconds
     	}
     };    
     

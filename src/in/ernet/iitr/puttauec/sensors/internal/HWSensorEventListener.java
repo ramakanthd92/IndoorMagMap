@@ -239,7 +239,6 @@ public class HWSensorEventListener implements SensorEventListener {
 				mLastGravityTimestamp = event.timestamp;
 				mGravity = event.values.clone();
 			    updateRotationMatrices();
-				Log.d(TAG,mGravity.toString());
 				for(IHWSensorEventCallback callback : mCallbacks) {
 					callback.onGravityUpdate(mGravity, deltaT, mLastGravityTimestamp);
 				}
@@ -252,7 +251,7 @@ public class HWSensorEventListener implements SensorEventListener {
 				deltaT -= mLastMagneticFieldTimestamp;
 				mLastMagneticFieldTimestamp = event.timestamp;
 				mMagneticField = event.values.clone();
-				updateRotationMatrices();
+				//updateRotationMatrices();
 				
 				for(IHWSensorEventCallback callback : mCallbacks) {
 					callback.onMagneticFieldUpdate(mMagneticField, deltaT, mLastMagneticFieldTimestamp);
@@ -278,18 +277,17 @@ public class HWSensorEventListener implements SensorEventListener {
 	}
 
 	private void updateRotationMatrices() {
-		SensorManager.getRotationMatrix(mR,mI,mGravity,mMagneticField);
-		//SensorManager.getRotationMatrixFromVector(mRV,mRotationVector);
-	//	updateTrueAccel();
+		SensorManager.getRotationMatrixFromVector(mRV,mRotationVector);
+		updateTrueAccel();
 	}
 
 	private void updateTrueAccel() {
 		mPrevTrueAccel = mTrueAccel.clone();
-		mTrueAccel[0] = mR[0] * mAccel[0] + mR[1] * mAccel[1] + mR[2]
+		mTrueAccel[0] = mRV[0] * mAccel[0] + mRV[1] * mAccel[1] + mRV[2]
 				* mAccel[2];
-		mTrueAccel[1] = mR[3] * mAccel[0] + mR[4] * mAccel[1] + mR[5]
+		mTrueAccel[1] = mRV[3] * mAccel[0] + mRV[4] * mAccel[1] + mRV[5]
 				* mAccel[2];
-		mTrueAccel[2] = mR[6] * mAccel[0] + mR[7] * mAccel[1] + mR[8]
+		mTrueAccel[2] = mRV[6] * mAccel[0] + mRV[7] * mAccel[1] + mRV[8]
 				* mAccel[2];
 	}
 
@@ -469,7 +467,7 @@ public class HWSensorEventListener implements SensorEventListener {
 	}
 	
 	public float[] getRotationMatrix() {
-		return mR;
+		return mRV;
 	}
 
 	public float[] getInclinationMatrix() {

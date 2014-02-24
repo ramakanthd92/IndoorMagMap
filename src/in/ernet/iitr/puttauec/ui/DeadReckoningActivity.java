@@ -73,28 +73,40 @@ public class DeadReckoningActivity extends Activity {
 		int method = getIntent().getIntExtra(KEY_RECKONING_METHOD, METHOD_DEAD_RECKONING);
 		Log.i(TAG, "Starting DeadReckoningActivity with reckoning method: " + method);
 		mDeadReckoning = new DeadReckoning(this);
-	//	intent = new Intent(this, BroadcastService.class);
+		intent = new Intent(this, BroadcastService.class);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 	}
    
 	 private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
 	        @Override
 	        public void onReceive(Context context, Intent intent) {
-	         // updateUI(intent);       
+	       	updateUI(intent);       
 	        }
 	    };  
 	   
 	  private void updateUI(Intent intent) {
+	    	float mstartx = mDeadReckoning.getmStartX();
+	    	float mstarty = mDeadReckoning.getmStartY();  
 	    	float[] mlocation = mDeadReckoning.getLocation();		
 	    	float mcurrentx = mlocation[0];  
 	    	float mcurrenty = mlocation[1];
 	    	int msteps = mDeadReckoning.getStepCount();
+	        
+	    	Log.d(TAG,Float.toString(mstartx));
+	    	Log.d(TAG,Float.toString(mstarty));
+	    	Log.d(TAG,Float.toString(mcurrentx));
+	    	Log.d(TAG,Float.toString(mcurrenty));
+	    	Log.d(TAG,Integer.toString(msteps));
 	    	
+	    	TextView startx = (TextView) findViewById(R.id.startx);  	
+	    	TextView starty = (TextView) findViewById(R.id.starty);
 	    	TextView currentx = (TextView) findViewById(R.id.currentx);  	
 	    	TextView currenty = (TextView) findViewById(R.id.currenty);
 	    	TextView stepcount = (TextView) findViewById(R.id.stepcount);  	
 	    	
-	        currentx.setText(Float.toString(mcurrentx));
+	    	startx.setText(Float.toString(mstartx));
+	    	starty.setText(Float.toString(mstarty));
+	    	currentx.setText(Float.toString(mcurrentx));
 	    	currenty.setText(Float.toString(mcurrenty));
 	    	stepcount.setText(Integer.toString(msteps));
 	   }
@@ -177,16 +189,16 @@ public class DeadReckoningActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 		mDeadReckoning.resume();
-	//	startService(intent);
-    //		registerReceiver(broadcastReceiver, new IntentFilter(BroadcastService.BROADCAST_ACTION));
+		startService(intent);
+   		registerReceiver(broadcastReceiver, new IntentFilter(BroadcastService.BROADCAST_ACTION));
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
 		mDeadReckoning.pause();
-	//	unregisterReceiver(broadcastReceiver);
-   // 		stopService(intent); 		
+		unregisterReceiver(broadcastReceiver);
+   		stopService(intent); 		
 	}
 
 	@Override
