@@ -42,13 +42,13 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 	public void start() {
 		
 		mAccelFileWriter = getFile("sLog.accel", "csv");
-	//	mGyroFileWriter = getFile("sLog.gyro", "csv");
-	//	mMagFileWriter = getFile("sLog.mag", "csv");
-	//	mAngleFileWriter = getFile("sLog.angle", "csv");
+		mGyroFileWriter = getFile("sLog.gyro", "csv");
+		mMagFileWriter = getFile("sLog.mag", "csv");
+		mAngleFileWriter = getFile("sLog.angle", "csv");
 		mRVFileWriter = getFile("sLog.RV", "csv");
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_ACCELEROMETER);
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_ROTATION_VECTOR);
-	//	mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_GYROSCOPE);
+//	    mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_GYROSCOPE);
 //		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_MAGNETISM);
 //		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_GRAVITY);
 	    mState = STARTED;
@@ -69,14 +69,14 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 			mAccelFileWriter.flush();
 			mAccelFileWriter.close();
 			
-	//		mGyroFileWriter.flush();
-	//		mGyroFileWriter.close();
+			mGyroFileWriter.flush();
+	    	mGyroFileWriter.close();
 			
-	//		mMagFileWriter.flush();
-	//		mMagFileWriter.close();
+			mMagFileWriter.flush();
+			mMagFileWriter.close();
 			
-	//		mAngleFileWriter.flush();
-	//		mAngleFileWriter.close();
+			mAngleFileWriter.flush();
+	    	mAngleFileWriter.close();
 			
 			mRVFileWriter.flush();
 	    	mRVFileWriter.close();
