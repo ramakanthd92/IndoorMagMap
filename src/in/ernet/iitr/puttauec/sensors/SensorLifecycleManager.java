@@ -50,18 +50,21 @@ public class SensorLifecycleManager {
 		mSensorManager.registerListener(mSensorEventListener, mSensorManager
 				.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
 				SENSOR_DELAY);
-		mSensorManager.registerListener(mSensorEventListener,
-				mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
-				SENSOR_DELAY); 
+		mSensorManager.registerListener(mSensorEventListener, mSensorManager
+				.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
+				SENSOR_DELAY);
 	/*	mSensorManager.registerListener(mSensorEventListener,
-				mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
-				SENSOR_DELAY); */
+				mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
+				SENSOR_DELAY);  
 		mSensorManager.registerListener(mSensorEventListener,
+				mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
+				SENSOR_DELAY); 
+   		mSensorManager.registerListener(mSensorEventListener,
 				mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
 				SENSOR_DELAY);
 		mSensorManager.registerListener(mSensorEventListener,
 				mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
-				SENSOR_DELAY); 
+				SENSOR_DELAY); */
 	}
 
 	@SuppressWarnings("unused")
@@ -81,7 +84,7 @@ public class SensorLifecycleManager {
 		case SENSOR_GYROSCOPE:
 		case SENSOR_GRAVITY:
 		case SENSOR_MAGNETISM:
-	//	case SENSOR_ROTATION_VECTOR:
+		case SENSOR_ROTATION_VECTOR:
 	
 			if (mSensorEventListener.callbackCount() == 0) {
 				resumeRequired = true;
@@ -106,7 +109,7 @@ public class SensorLifecycleManager {
 		case SENSOR_GYROSCOPE:
 		case SENSOR_GRAVITY:
 		case SENSOR_MAGNETISM:
-	//	case SENSOR_ROTATION_VECTOR:
+		case SENSOR_ROTATION_VECTOR:
 			mSensorEventListener.unregisterCallback(callback);
 			if (mSensorEventListener.callbackCount() == 0) {
 				pauseHWEventListeners();
@@ -123,10 +126,10 @@ public class SensorLifecycleManager {
 	// the object has registered itself.
 	public void unregisterCallback(ISensorCallback callback) {
 		unregisterCallback(callback, SENSOR_ACCELEROMETER);
-		unregisterCallback(callback, SENSOR_GRAVITY);
-		unregisterCallback(callback, SENSOR_GYROSCOPE);
-		unregisterCallback(callback, SENSOR_MAGNETISM);
-	//	unregisterCallback(callback, SENSOR_ROTATION_VECTOR);
+	//	unregisterCallback(callback, SENSOR_GRAVITY);
+	//	unregisterCallback(callback, SENSOR_GYROSCOPE);
+	//	unregisterCallback(callback, SENSOR_MAGNETISM);
+		unregisterCallback(callback, SENSOR_ROTATION_VECTOR);
 	}
 	
 	public float[] getRotationMatrix() {
