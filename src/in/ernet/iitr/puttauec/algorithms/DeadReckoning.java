@@ -35,7 +35,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 
 	// These constants are expected to be divided by 1000 before use
 	public static int DEFAULT_TRAINING_CONSTANT = 4964; // 5200; // 3300; // 1937;
-	public static int DEFAULT_ACCEL_THRESHOLD = 1300; // 1840;
+	public static int DEFAULT_ACCEL_THRESHOLD = 1200; // 1840; //1300 /1400 //1500 
 	
 	// Instance variables
 	LinkedList<float[]> mAccelHistory;
@@ -55,6 +55,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	private float mMinAccel;
 	private float mMaxAccel;
 	private int mState;
+	private long prevSteptimestamp;
 	
 	// Reference to the Sensor Lifecycle Manager used to get the sensor data
 	private SensorLifecycleManager mSensorLifecycleManager;
@@ -102,8 +103,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 				throw new RuntimeException(e);
 			}
 		}
-        System.out.println("LA - " + String.valueOf(values[0])+" "+String.valueOf(values[1])+" "+String.valueOf(values[2]));
-		
+      
         if(Math.abs(values[2]) < mAccelThreshold) {
 			 values[0] = 0;
 			 values[1] = 0;
@@ -113,19 +113,19 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 		// Count local maxima
 		synchronized(mAccelHistory) {
 			float s0 = mAccelHistory.get(mAccelHistory.size()-2)[2], s1 = mAccelHistory.get(mAccelHistory.size()-1)[2], s2 = values[2];
-			System.out.println("AH -"  + Float.valueOf(s0)+","+Float.valueOf(s1)+","+Float.valueOf(s2));
 			// Count peaks and valleys
 			if((s2 - s1)*(s1 - s0) < 0) {
 				if(s2 - s1 < 0 && s1 > 0) { // Peak Found
 					if(mState == PEAK_HUNT) {
 						// Count previous peak+valley pair and start off new counting. 
-						++mStepCount;
+						if(timestamp-prevSteptimestamp > 100*1000)
+							{ ++mStepCount;
+						       prevSteptimestamp = timestamp; }
+						else {return;}
 
 						double stepSize = getStepSize();
 						double radAngle = getAngleRadians();
 						
-						System.out.println(stepSize);
-						System.out.println(radAngle);
 						if(this.isLogging()) {
 							try {
 								mStepLogFileWriter.write("" + timestamp + "," + deltaT + "," + stepSize + "," + Math.toDegrees(radAngle) + "\n");
