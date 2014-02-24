@@ -9,33 +9,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" >
 
-        <TableRow
-            android:id="@+id/tableRow1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" >
-
-            <TextView
-                android:text="start X:"
-                android:textSize="20sp" />
-
-            <TextView
-                android:id="@+id/startx"
-                android:textSize="20sp" />
-        </TableRow>
-
-        <TableRow
-            android:id="@+id/tableRow2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" >
-
-            <TextView
-                android:text="start Y:"
-                android:textSize="20sp" />
-
-            <TextView
-                android:id="@+id/starty"
-                android:textSize="20sp" />
-        </TableRow>
 
         <TableRow
             android:id="@+id/tableRow3"

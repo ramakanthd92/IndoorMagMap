@@ -266,7 +266,7 @@ public class HWSensorEventListener implements SensorEventListener {
 				deltaT -= mLastRotationVectorTimestamp;
 				mLastRotationVectorTimestamp = event.timestamp;
 				mRotationVector = event.values.clone();
-				//updateRotationMatrices();
+				updateRotationMatrices();
 				
 				for(IHWSensorEventCallback callback : mCallbacks) {
 					callback.onRotationVectorUpdate(mRotationVector, deltaT, mLastRotationVectorTimestamp);
@@ -279,7 +279,7 @@ public class HWSensorEventListener implements SensorEventListener {
 
 	private void updateRotationMatrices() {
 		SensorManager.getRotationMatrix(mR,mI,mGravity,mMagneticField);
-		System.out.println("Rotation");
+		//SensorManager.getRotationMatrixFromVector(mRV,mRotationVector);
 	//	updateTrueAccel();
 	}
 

@@ -80,33 +80,21 @@ public class DeadReckoningActivity extends Activity {
 	 private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
 	        @Override
 	        public void onReceive(Context context, Intent intent) {
-	        //	updateUI(intent);       
+	         // updateUI(intent);       
 	        }
 	    };  
 	   
 	  private void updateUI(Intent intent) {
-	    	float mstartx = mDeadReckoning.getmStartX();
-	    	float mstarty = mDeadReckoning.getmStartY();  
 	    	float[] mlocation = mDeadReckoning.getLocation();		
 	    	float mcurrentx = mlocation[0];  
 	    	float mcurrenty = mlocation[1];
 	    	int msteps = mDeadReckoning.getStepCount();
-	        
-	    	Log.d(TAG,Float.toString(mstartx));
-	    	Log.d(TAG,Float.toString(mstarty));
-	    	Log.d(TAG,Float.toString(mcurrentx));
-	    	Log.d(TAG,Float.toString(mcurrenty));
-	    	Log.d(TAG,Integer.toString(msteps));
 	    	
-	    	TextView startx = (TextView) findViewById(R.id.startx);  	
-	    	TextView starty = (TextView) findViewById(R.id.starty);
 	    	TextView currentx = (TextView) findViewById(R.id.currentx);  	
 	    	TextView currenty = (TextView) findViewById(R.id.currenty);
 	    	TextView stepcount = (TextView) findViewById(R.id.stepcount);  	
 	    	
-	    	startx.setText(Float.toString(mstartx));
-	    	starty.setText(Float.toString(mstarty));
-	    	currentx.setText(Float.toString(mcurrentx));
+	        currentx.setText(Float.toString(mcurrentx));
 	    	currenty.setText(Float.toString(mcurrenty));
 	    	stepcount.setText(Integer.toString(msteps));
 	   }
@@ -198,7 +186,7 @@ public class DeadReckoningActivity extends Activity {
 		super.onPause();
 		mDeadReckoning.pause();
 	//	unregisterReceiver(broadcastReceiver);
-    //		stopService(intent); 		
+   // 		stopService(intent); 		
 	}
 
 	@Override
