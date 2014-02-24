@@ -29,7 +29,7 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 	private SensorLifecycleManager mSensorLifecycleManager;
 	private int mState;
 	private FileWriter mAccelFileWriter;
-	private FileWriter mRVFileWriter;
+//	private FileWriter mRVFileWriter;
 	private FileWriter mGyroFileWriter;
 	private FileWriter mMagFileWriter;
 	private FileWriter mAngleFileWriter;
@@ -45,9 +45,9 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 		mGyroFileWriter = getFile("sLog.gyro", "csv");
 		mMagFileWriter = getFile("sLog.mag", "csv");
 		mAngleFileWriter = getFile("sLog.angle", "csv");
-		mRVFileWriter = getFile("sLog.RV", "csv");
+	//	mRVFileWriter = getFile("sLog.RV", "csv");
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_ACCELEROMETER);
-		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_ROTATION_VECTOR);
+		//mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_ROTATION_VECTOR);
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_GYROSCOPE);
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_MAGNETISM);
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_GRAVITY);
@@ -59,7 +59,7 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 //		mWifiLock.release();
 		
 		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_ACCELEROMETER);
-		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_ROTATION_VECTOR);
+		//mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_ROTATION_VECTOR);
 		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_GYROSCOPE);
 		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_MAGNETISM);
 		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_GRAVITY);
@@ -78,8 +78,8 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 			mAngleFileWriter.flush();
 			mAngleFileWriter.close();
 			
-			mRVFileWriter.flush();
-			mRVFileWriter.close();
+		//	mRVFileWriter.flush();
+		//	mRVFileWriter.close();
 			
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -134,10 +134,10 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 		persistToFile(mGyroFileWriter, values, deltaT, timestamp);
 	}
 	
-	@Override
+		@Override
 	public void onRotationVectorUpdate(float[] values, long deltaT, long timestamp) {
-		persistToFile(mRVFileWriter, values, deltaT, timestamp);
-		persistToFile(mRVFileWriter, mSensorLifecycleManager.getRotationVector(), deltaT, timestamp);
+	//	persistToFile(mRVFileWriter, values, deltaT, timestamp);
+	//	persistToFile(mRVFileWriter, mSensorLifecycleManager.getRotationVector(), deltaT, timestamp);
 	}
 	
 	private FileWriter getFile(String dataType, String extension) {
