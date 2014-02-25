@@ -2,6 +2,7 @@ package in.ernet.iitr.puttauec.algorithms;
 
 import in.ernet.iitr.puttauec.sensorutil.RandomSingleton;
 import in.ernet.iitr.puttauec.algorithms.DeadReckoning;
+import in.ernet.iitr.puttauec.ui.LaunchActivity;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -141,7 +142,7 @@ public class ParticleFiltering extends DeadReckoning {
 		 
 		 public void SensorErrorModel(double Magnetic_Measurement)
 		 {     importance_weight = 1.0;
-		       double position_magnitude = getMagneticField(x,y);
+		       double position_magnitude = LaunchActivity.getMagneticField(x,y);
 		       importance_weight *= Gaussian(position_magnitude,sense_noise,Magnetic_Measurement);
 		 } 
 		 
