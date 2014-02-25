@@ -21,7 +21,7 @@ import android.text.format.DateFormat;
 import android.util.Log;
 
 public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm, IReckoningMethod {
-	private static final String SAMPLES_DIR = Environment.getExternalStorageDirectory() + File.separator + "samples";
+	protected static final String SAMPLES_DIR = Environment.getExternalStorageDirectory() + File.separator + "samples";
 	private static final int DEFAULT_MAP_HEIGHT = 480;
 	private static final int DEFAULT_MAP_WIDTH = 640;
 
@@ -61,9 +61,9 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	private SensorLifecycleManager mSensorLifecycleManager;
 
 	private double mRoughAngle;
-	private boolean mIsLogging;
-	private FileWriter mAccelLogFileWriter;
-	private FileWriter mStepLogFileWriter;
+	protected boolean mIsLogging;
+	protected FileWriter mAccelLogFileWriter;
+	protected FileWriter mStepLogFileWriter;
 
 	public DeadReckoning(Context ctx) {
 		init();		

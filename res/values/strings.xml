@@ -14,8 +14,9 @@
         <item>Dead Reckoning</item>
         <item>Sensor Logger Activity</item>
     </string-array>
+
     <string name="edit_path">Edit location</string>
-     <string name="scan_button">Scan Button</string>
+    <string name="scan_button">Scan Button</string>
     <string name="scan_content">Content</string>
     <string name="scan_format">Format</string>
     <string name="title_activity_launch">Indoor Mag</string>
@@ -28,5 +29,6 @@
     <string name="y_value">Y Co-Ord</string>
     <string name="button_record">Start Position</string>
     <string name="title_activity_scan">ScanActivity</string>
+    <string name="title_activity_particle_filtering">ParticleFilteringActivity</string>
 
 </resources>

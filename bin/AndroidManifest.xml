@@ -7,6 +7,7 @@
     <uses-sdk
         android:minSdkVersion="9"
         android:targetSdkVersion="18" />
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -16,7 +17,9 @@
             android:name="in.ernet.iitr.puttauec.ui.DeadReckoningActivity"
             android:label="@string/dead_reckoning_activity" >
         </activity>
-         <service android:name=".ui.BroadcastService" />
+
+        <service android:name="in.ernet.iitr.puttauec.ui.BroadcastService" />
+
         <activity
             android:name="in.ernet.iitr.puttauec.ui.DeadReckoningTrainingActivity"
             android:label="@string/dead_reckoning_training_activity" >
@@ -43,8 +46,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
+        <activity
+            android:name="in.ernet.iitr.puttauec.ui.ParticleFilteringActivity"
+            android:label="@string/title_activity_particle_filtering" >
+        </activity>
     </application>
+
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" >
     </uses-permission>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" >
