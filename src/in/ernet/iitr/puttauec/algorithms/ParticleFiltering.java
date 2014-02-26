@@ -11,8 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
-import org.apache.commons.math3.analysis.interpolation.BicubicSplineInterpolatingFunction;
-
 import android.content.Context;
 import android.text.format.DateFormat;
 import android.util.Log;
@@ -26,14 +24,21 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static double  measurement  = 0.0;
 	   private static final String TAG = "ParticleFilterReckoning";
 	   
+	   public static int DEFAULT_PARTICLE_COUNT = 200; // 500; // 1000; // 2000;
+	   public static int DEFAULT_STEP_NOISE_THRESHOLD = 200; // 1840; //1300 /1400 //1500 
+	   public static int DEFAULT_SENSE_NOISE_THRESHOLD = 2000; // 1840; //1300 /1400 //1500 
+			 
        protected MapGenerator magneticmap ; 
 	   protected Particle[] particles ;
 	   protected Particle[] sortedParticles;
 	   protected double[] weightSums ;
 		
-	   private static int particleCount = 200;        //500  //1000  
 	   private FileWriter mNumCandidatesFile;
-		
+	   private static int particleCount = DEFAULT_PARTICLE_COUNT;        //500  //1000  //2000
+	   private static double msenseNoise = DEFAULT_STEP_NOISE_THRESHOLD/1000.f;        //500  //1000
+	   private static double mstepNoise = DEFAULT_SENSE_NOISE_THRESHOLD/1000.f;        //500  //1000  
+	   private static double mturnNoise = 0.20;	  
+		  
 	   private static final double INIT_SD_X = 0.25;
 	   private static final double INIT_SD_Y = 0.25;
 	   
@@ -44,21 +49,14 @@ public class ParticleFiltering extends DeadReckoning {
 	   //@Override
 		public ParticleFiltering(Context ctx) {
 			super(ctx);
-		    String json_obj =loadJSONFromAsset(ctx);
-			magneticmap = new MapGenerator(json_obj);
-			 for(double i = 0.0 ; i <= 50.0 ; i += 0.5)
-				{  for(double j = 0.0; j < 3.0  ; j += 0.5)
-					{ System.out.print(magneticmap.f.value(j,i));
-					  System.out.print(" ");
-					}
-					System.out.println(" ");
-			}    
+		    String json_obj =loadJSONFromAsset(ctx,"w0.json");
+			magneticmap = new MapGenerator(json_obj);	
 		}
 		
-		public static String loadJSONFromAsset(Context context) {
+		public static String loadJSONFromAsset(Context context,String filename) {
 	        String json = null;
 	        try {	        	
-	        	InputStream is = context.getAssets().open("w0.json");            
+	        	InputStream is = context.getAssets().open(filename);            
 	        	int size = is.available();
 	            byte[] buffer = new byte[size];
 	            is.read(buffer);
@@ -129,18 +127,12 @@ public class ParticleFiltering extends DeadReckoning {
 	     private double x;
 	     private double y;
 	     private double theta;
-		 private double step_noise;
-		 private double turn_noise;
-		 private double sense_noise;
 		 private double importance_weight;
 		 public Particle()
 		 {  x  = minX + (maxX-minX)*rand.nextDouble() ; 
 		    
 		    y  = minY + (maxY-minY)*rand.nextDouble() ; 
 		    theta = 2*Math.PI*rand.nextDouble();
-		    step_noise = 0.3 ; 
-		    turn_noise = 0.10; 
-		    sense_noise = 10.0; 
 		    importance_weight = 1.0;
 		 }
 		 
@@ -148,9 +140,6 @@ public class ParticleFiltering extends DeadReckoning {
 		 {  x  = P.x ; 
 		    y  = P.y ; 
 		    theta = P.theta;
-		    step_noise = P.step_noise; 
-		    turn_noise = P.turn_noise; 
-		    sense_noise = P.sense_noise ;
 		    importance_weight = P.importance_weight;
 		 }
 		 
@@ -160,17 +149,17 @@ public class ParticleFiltering extends DeadReckoning {
 		    theta = theta_co; 
 		 }
 		 
-		 public void set_noise(double step_no, double turn_no, double sense_no)
-		 {  step_noise = step_no;
-		    turn_noise = turn_no;
-		    sense_noise = sense_no;
-		 }
 		 
 		 public void move(double step_size, double rad_angle)
-		 {    x = x + ((step_size + step_noise*(rand.nextGaussian())) * Math.cos(rad_angle));                   // TO DO : Use Particles Theta Value Here
-		      y = y + ((step_size + step_noise*(rand.nextGaussian())) * Math.sin(rad_angle));                   // TO DO : Use Velocity Dependent step_noise and turn_noise here  
-              theta = rad_angle + turn_noise*rand.nextGaussian();
-              theta %= (2*Math.PI);                                                                             // To DO : Use Map Bounds Here
+		 {    x = x + ((step_size + mstepNoise*(rand.nextGaussian())) * Math.cos(rad_angle));                   // TO DO : Use Particles Theta Value Here
+		      y = y + ((step_size + mstepNoise*(rand.nextGaussian())) * Math.sin(rad_angle));                   // TO DO : Use Velocity Dependent step_noise and turn_noise here  
+              theta = rad_angle + mturnNoise*rand.nextGaussian();
+              theta %= (2*Math.PI);   
+              // To DO : Use Map Bounds Here
+              
+              System.out.println(mstepNoise);
+              System.out.println(particleCount);
+              
          }
 		 
 		 public void SensorErrorModel(double Magnetic_Measurement)
@@ -178,7 +167,7 @@ public class ParticleFiltering extends DeadReckoning {
 		       if ((x > minX && x < maxX) && (y > minX && y < maxX))
 		       {  double position_magnitude = magneticmap.f.value(x,y);	
 		          System.out.print(position_magnitude);
-		          importance_weight *= Gaussian(position_magnitude,sense_noise,Magnetic_Measurement);
+		          importance_weight *= Gaussian(position_magnitude,msenseNoise,Magnetic_Measurement);
 		       }  
 		       else 
 		       { importance_weight = 0.005;		    	   
@@ -441,6 +430,33 @@ public class ParticleFiltering extends DeadReckoning {
 				particles[i].y = mStartY + (float)(INIT_SD_Y*rand.nextGaussian());
 			}
 		}	
+		
+		
+		
+		public int getParticleCount () {
+		   return particleCount;
+		}
+	    
+		public double getSenseNoise () {
+			return msenseNoise;
+		}
+		
+		public double getStepNoise () {
+			return  mstepNoise;
+		}
+		
+		public void setParticleCount (double pc) {
+			   particleCount = (int) pc;
+			}
+		    
+			public void setSenseNoise (double sen) {
+				 msenseNoise = sen;
+			}
+			
+			public void setStepNoise (double ste) {
+				mstepNoise = ste;
+			}
+	
 	/*	private static final Comparator mapFitness = new Comparator() {
 			/** 
 			 * Fitness is an approximation of p(z|x,z,m)
