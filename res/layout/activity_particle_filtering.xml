@@ -59,7 +59,7 @@
             android:layout_height="wrap_content" >
 
             <TextView
-                android:text="Current Y"
+                android:text="Current Y:"
                 android:textSize="20sp" />
 
             <TextView

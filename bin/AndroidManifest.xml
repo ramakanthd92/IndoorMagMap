@@ -50,6 +50,10 @@
             android:name="in.ernet.iitr.puttauec.ui.ParticleFilteringActivity"
             android:label="@string/title_activity_particle_filtering" >
         </activity>
+        <activity
+            android:name="in.ernet.iitr.puttauec.ui.ParticlFilterControlActivity"
+            android:label="@string/title_activity_particl_filter_control" >
+        </activity>
     </application>
 
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" >

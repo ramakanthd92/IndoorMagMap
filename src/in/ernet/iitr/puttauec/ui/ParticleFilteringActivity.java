@@ -36,11 +36,12 @@ public class ParticleFilteringActivity extends Activity {
 	
 	private static final String MAP_POINT = "MapPoint";
 	private static final String KEY_QR_TYPE = "Type";
-	private static final int PARFIL_RECKONING_TRAINING_CONSTANT = Menu.FIRST;
-	private static final int PARFIL_RECKONING_RESTART = Menu.FIRST + 1;
-	private static final int PARFIL_RECKONING_STARTPOS = Menu.FIRST + 2;
-	private static final int PARFIL_RECKONING_LOG_STEP_DATA = Menu.FIRST + 3;
-	private static final int PARFIL_RECKONING_STEP_SIZE_ESTIMATE = Menu.FIRST + 4;
+	private static final int DEAD_RECKONING_TRAINING_CONSTANT = Menu.FIRST;
+	private static final int PARFIL_RECKONING_TRAINING_CONSTANT = Menu.FIRST+1;
+	private static final int PARFIL_RECKONING_RESTART = Menu.FIRST + 2;
+	private static final int PARFIL_RECKONING_STARTPOS = Menu.FIRST + 3;
+	private static final int PARFIL_RECKONING_LOG_STEP_DATA = Menu.FIRST + 4;
+//	private static final int PARFIL_RECKONING_STEP_SIZE_ESTIMATE = Menu.FIRST + 5;
 	private static final int PARFIL_RECKONING_LOG_PATH = Menu.FIRST + 5;
 	
 	// Constants for QRCode data
@@ -94,7 +95,9 @@ public class ParticleFilteringActivity extends Activity {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		boolean result = super.onCreateOptionsMenu(menu);
-		menu.add(0, PARFIL_RECKONING_TRAINING_CONSTANT, 0, "Modify Training Constant");
+		menu.add(0, DEAD_RECKONING_TRAINING_CONSTANT, 0, "Modify Training Constant");
+		menu.add(0, PARFIL_RECKONING_TRAINING_CONSTANT, 0, "Particle Filter Control");
+		
 		menu.add(0, PARFIL_RECKONING_RESTART, 0, "Restart Particle Filter Reckoning");
 		menu.add(0, PARFIL_RECKONING_STARTPOS, 0, "Scan Location");
 		if(mDeadReckoning.isLogging()) {
@@ -110,11 +113,18 @@ public class ParticleFilteringActivity extends Activity {
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch(item.getItemId()) {
-		case PARFIL_RECKONING_TRAINING_CONSTANT:
+		case DEAD_RECKONING_TRAINING_CONSTANT:
 			Intent launchIntent = new Intent(this, DeadReckoningTrainingActivity.class);
 			launchIntent.putExtra(DeadReckoningTrainingActivity.KEY_THRESHOLD_VALUE, mDeadReckoning.getAccelThreshold());
 			launchIntent.putExtra(DeadReckoningTrainingActivity.KEY_TRAINING_VALUE, mDeadReckoning.getTrainingConstant());
-			startActivityForResult(launchIntent , PARFIL_RECKONING_TRAINING_CONSTANT);
+			startActivityForResult(launchIntent , DEAD_RECKONING_TRAINING_CONSTANT);
+			break;
+		case PARFIL_RECKONING_TRAINING_CONSTANT:
+			Intent pfIntent = new Intent(this, ParticlFilterControlActivity.class);
+			pfIntent.putExtra(ParticlFilterControlActivity.KEY_PARTICLE_COUNT_VALUE, mDeadReckoning.getParticleCount());
+			pfIntent.putExtra(ParticlFilterControlActivity.KEY_STEP_NOISE_VALUE, mDeadReckoning.getStepNoise());
+			pfIntent.putExtra(ParticlFilterControlActivity.KEY_SENSE_NOISE_VALUE, mDeadReckoning.getSenseNoise());
+			startActivityForResult(pfIntent , PARFIL_RECKONING_TRAINING_CONSTANT);
 			break;
 		case PARFIL_RECKONING_RESTART:
 			mDeadReckoning.restart();
@@ -185,21 +195,37 @@ public class ParticleFilteringActivity extends Activity {
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
 		switch(requestCode) {
-			case PARFIL_RECKONING_TRAINING_CONSTANT:
+			case DEAD_RECKONING_TRAINING_CONSTANT:
 				switch(resultCode) {
 					case RESULT_OK:
 						// The DeadReckoningTrainingActivity returns the new values selected
 						// using sliders.
 						mDeadReckoning.setTrainingConstant(data.getFloatExtra(DeadReckoningTrainingActivity.KEY_TRAINING_VALUE, DeadReckoning.DEFAULT_TRAINING_CONSTANT/1000.f));
-						mDeadReckoning.setAccelThreshold(data.getFloatExtra(DeadReckoningTrainingActivity.KEY_THRESHOLD_VALUE, DeadReckoning.DEFAULT_ACCEL_THRESHOLD/1000.f));
+						mDeadReckoning.setAccelThreshold(data.getFloatExtra(DeadReckoningTrainingActivity.KEY_THRESHOLD_VALUE, DeadReckoning.DEFAULT_ACCEL_THRESHOLD/1000.f));										
 						break;
 					default:
 						throw new RuntimeException("Unexpected Activity Return value!");
 				}
 				break;
 				
-			case PARFIL_RECKONING_STEP_SIZE_ESTIMATE:
+				
+			case PARFIL_RECKONING_TRAINING_CONSTANT:
+				switch(resultCode) {
+					case RESULT_OK:
+						// The DeadReckoningTrainingActivity returns the new values selected
+						// using sliders.
+						mDeadReckoning.setParticleCount(data.getFloatExtra(ParticlFilterControlActivity.KEY_PARTICLE_COUNT_VALUE,ParticleFiltering.DEFAULT_PARTICLE_COUNT));
+						mDeadReckoning.setStepNoise(data.getFloatExtra(ParticlFilterControlActivity.KEY_STEP_NOISE_VALUE, ParticleFiltering.DEFAULT_STEP_NOISE_THRESHOLD/1000.f));
+						mDeadReckoning.setSenseNoise(data.getFloatExtra(ParticlFilterControlActivity.KEY_SENSE_NOISE_VALUE, ParticleFiltering.DEFAULT_SENSE_NOISE_THRESHOLD/1000.f ));					
+						break;
+					default:
+						throw new RuntimeException("Unexpected Activity Return value!");
+				}
 				break;
+				
+				
+	//		case PARFIL_RECKONING_STEP_SIZE_ESTIMATE:
+		//		break;
 			case PARFIL_RECKONING_STARTPOS:
 				switch(resultCode) {
 				case RESULT_OK:
