@@ -38,10 +38,11 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static double msenseNoise = DEFAULT_STEP_NOISE_THRESHOLD/1000.f;        //500  //1000
 	   private static double mstepNoise = DEFAULT_SENSE_NOISE_THRESHOLD/1000.f;        //500  //1000  
 	   private static double mturnNoise = 0.20;	  
-		  
-	   private static final double INIT_SD_X = 0.25;
-	   private static final double INIT_SD_Y = 0.25;
+	   
+	   private static final double INIT_SD_X = 1.0;
+	   private static final double INIT_SD_Y = 1.0;
 	   private static String file = "0";  
+	
 	   
 	   public static int count = 0;
 		
@@ -49,8 +50,8 @@ public class ParticleFiltering extends DeadReckoning {
 	   
 	   //@Override
 		public ParticleFiltering(Context ctx,String file) {
-			super(ctx);
-			if(file == "0")
+			super(ctx);                                                  //TODO: Incorporate the Barcode Scanner to identify the path way. 
+			if(file == "0") 
 			  { magneticmap.N = 4;}
 			else if(file == "1" || file == "2")
 			  { magneticmap.N= 3;
@@ -244,8 +245,7 @@ public class ParticleFiltering extends DeadReckoning {
 			}
 		}
 		
-		
-		@Override
+	    @Override
 		public void setStartPos(float x, float y) {
 			super.setStartPos(x, y);
 		}
@@ -427,7 +427,10 @@ public class ParticleFiltering extends DeadReckoning {
 				e.printStackTrace();
 				throw new RuntimeException(e);
 			}
-		}@Override
+		}
+		
+		
+		@Override
 		public void setmStartX(float mStartX) {
 			super.setmStartX(mStartX);
 			for(int i = 0; i < particleCount; ++i) {
@@ -441,10 +444,7 @@ public class ParticleFiltering extends DeadReckoning {
 			for(int i = 0; i < particleCount; ++i) {
 				particles[i].y = mStartY + (float)(INIT_SD_Y*rand.nextGaussian());
 			}
-		}	
-		
-		
-		
+		}			
 		public int getParticleCount () {
 		   return particleCount;
 		}

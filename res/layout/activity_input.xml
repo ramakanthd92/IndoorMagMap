@@ -12,7 +12,6 @@
             android:id="@+id/tableRow1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" >
-
             <EditText
                 android:id="@+id/file_name"
                 android:layout_width="wrap_content"
@@ -21,14 +20,12 @@
                  >
                 <requestFocus />
             </EditText>
-
             <Button
                 android:id="@+id/start"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:onClick = "StartMethod"
                 android:text="Start" />
-    
 	</TableRow>
 </TableLayout>
 </LinearLayout>

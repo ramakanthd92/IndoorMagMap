@@ -244,8 +244,7 @@ public class ParticleFilteringActivity extends Activity {
 			            			// TODO Remove this hack
 			            				mDeadReckoning.restart();
 			            				mDeadReckoning.setStartPos(x, y);
-			            				//mDeadReckoning.setLocation(x, y);
-			            			
+			            			  //mDeadReckoning.setLocation(x, y);			            			
 		            			}
 		            		} else {
 		            			Log.i(TAG, "Missing some pre-conditions!");
