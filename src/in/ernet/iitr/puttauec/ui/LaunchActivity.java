@@ -46,7 +46,7 @@ public class LaunchActivity extends ListActivity {
 			break;
 		
 	    case PARTICLE_FILTER_RECKONING_ACTIVITY:
-	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
+	    	launchIntent = new Intent(this, InputActivity.class);
 	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY);
 			break;			
 			

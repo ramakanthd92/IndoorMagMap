@@ -41,16 +41,27 @@ public class ParticleFiltering extends DeadReckoning {
 		  
 	   private static final double INIT_SD_X = 0.25;
 	   private static final double INIT_SD_Y = 0.25;
+	   private static String file = "0";  
 	   
 	   public static int count = 0;
 		
 	   private FileWriter mMagLogFileWriter;
 	   
 	   //@Override
-		public ParticleFiltering(Context ctx) {
+		public ParticleFiltering(Context ctx,String file) {
 			super(ctx);
-		    String json_obj =loadJSONFromAsset(ctx,"w0.json");
+			if(file == "0")
+			  { magneticmap.N = 4;}
+			else if(file == "1" || file == "2")
+			  { magneticmap.N= 3;
+				minX = 1.0;
+			  } 
+			else
+			  {file = "0";}
+			String filename = "w"+ file +".json";
+		    String json_obj =loadJSONFromAsset(ctx,filename);
 			magneticmap = new MapGenerator(json_obj);	
+			
 		}
 		
 		public static String loadJSONFromAsset(Context context,String filename) {
@@ -157,8 +168,8 @@ public class ParticleFiltering extends DeadReckoning {
               theta %= (2*Math.PI);   
               // To DO : Use Map Bounds Here
               
-              System.out.println(mstepNoise);
-              System.out.println(particleCount);
+            //  System.out.println(mstepNoise);
+            //  System.out.println(particleCount);
               
          }
 		 
@@ -166,7 +177,7 @@ public class ParticleFiltering extends DeadReckoning {
 		 {     importance_weight = 1.0;
 		       if ((x > minX && x < maxX) && (y > minX && y < maxX))
 		       {  double position_magnitude = magneticmap.f.value(x,y);	
-		          System.out.print(position_magnitude);
+		       //   System.out.print(position_magnitude);
 		          importance_weight *= Gaussian(position_magnitude,msenseNoise,Magnetic_Measurement);
 		       }  
 		       else 
@@ -276,7 +287,7 @@ public class ParticleFiltering extends DeadReckoning {
 				
 				next[i].move(step_size,rad_angle);
 			    next[i].SensorErrorModel(measurement);
-			    System.out.print(",x = ");
+			 /*   System.out.print(",x = ");
 			    System.out.print(next[i].get_X());
 			    System.out.print(",y = ");
 			    System.out.print(next[i].get_Y());
@@ -284,7 +295,7 @@ public class ParticleFiltering extends DeadReckoning {
 			    System.out.print(next[i].getImportanceWeight());
 			    System.out.print(", meas =");
 			    System.out.println(measurement);
-			   
+			*/   
 			  //  next[i].updateMap( nextPose, observations, sensorImageGen, dt, sensorErrorModel, processError, // assoc,//useKnownDataAssociations,lmGen);
 			}
 			particles = next;
@@ -336,13 +347,13 @@ public class ParticleFiltering extends DeadReckoning {
 
 		private double calculateSums() {
 			double totalSum = 0.0;
-			System.out.println(particles.length);
+		//	System.out.println(particles.length);
 			for (int i = 0; i < this.particles.length; i++) {
 				totalSum += this.particles[i].getImportanceWeight();
-				System.out.print(particles[i].getImportanceWeight());
-				System.out.print(',');
+		//		System.out.print(particles[i].getImportanceWeight());
+		//		System.out.print(',');
 			}
-			System.out.println(totalSum);
+		//	System.out.println(totalSum);
 			
 			return totalSum;
 		}
@@ -356,7 +367,7 @@ public class ParticleFiltering extends DeadReckoning {
 			if (sum == 0.0) {
 				// sum of weights is zero. Treat all particles equally.
 				
-				System.out.println(" Sum of weights is zero. Treat all particles equally.");
+			//	System.out.println(" Sum of weights is zero. Treat all particles equally.");
 								
 				for (int i = 0; i < this.particles.length; i++) {
 					this.particles[i].setImportanceWeight(1.0);
@@ -376,8 +387,8 @@ public class ParticleFiltering extends DeadReckoning {
 			for (int i = 0; i < this.particles.length; i++) {
 				double value = this.particles[i].getImportanceWeight();
 				this.weightSums[i + 1] = this.weightSums[i] + value;
-				System.out.print(value);
-				System.out.print(',');
+			//	System.out.print(value);
+			//	System.out.print(',');
 			}
 			//System.out.println(this.weightSums.length);
 			final double total = this.weightSums[this.weightSums.length-1];                        // TO DO : use Dependance on previous Filter weight too..

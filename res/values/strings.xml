@@ -32,5 +32,6 @@
     <string name="title_activity_scan">ScanActivity</string>
     <string name="title_activity_particle_filtering">ParticleFilteringActivity</string>
     <string name="title_activity_particl_filter_control">ParticlFilterControlActivity</string>
+    <string name="title_activity_input">InputActivity</string>
 
 </resources>

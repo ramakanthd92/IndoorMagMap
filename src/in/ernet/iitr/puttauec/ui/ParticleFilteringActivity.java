@@ -50,9 +50,11 @@ public class ParticleFilteringActivity extends Activity {
 		private Intent intent;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
+		super.onCreate(savedInstanceState);		
 		setContentView(R.layout.activity_particle_filtering);
-		this.mDeadReckoning = new ParticleFiltering(this);
+		Intent mintent = getIntent();
+		String file_id = (String) mintent.getStringExtra(InputActivity.EXTRA_MESSAGE);		
+		this.mDeadReckoning = new ParticleFiltering(this,file_id);
 		intent = new Intent(this, BroadcastService.class);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 	}
@@ -131,7 +133,7 @@ public class ParticleFilteringActivity extends Activity {
 			break;
 		case PARFIL_RECKONING_STARTPOS:
 			Intent intent = new Intent(this,ScanActivity.class);
-	        System.out.println("Scan-Dead");
+	      //  System.out.println("Scan-Dead");
 	        startActivityForResult(intent, PARFIL_RECKONING_STARTPOS);
 			break;
 			

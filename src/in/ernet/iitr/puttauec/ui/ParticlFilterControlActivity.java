@@ -31,7 +31,6 @@ public class ParticlFilterControlActivity extends Activity {
 		
 		// This is the result of the activity
 		mReturnValue = new Intent();
-		
 		mParticleCountValue = (TextView) findViewById(R.id.particle_count_value);
 		mParticleCountSlider = (SeekBar) findViewById(R.id.particle_count_slider);
 		mParticleCountSlider.setOnSeekBarChangeListener(	
