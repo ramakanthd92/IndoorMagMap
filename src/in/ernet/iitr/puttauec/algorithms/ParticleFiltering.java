@@ -17,7 +17,7 @@ import android.util.Log;
 
 public class ParticleFiltering extends DeadReckoning {
 	   private static final Random rand = RandomSingleton.instance;
-	   static double				minX  = 0.0  ;  //Double.MAX_VALUE;
+	   static double				minX  = 0.0  ;  //Double.MAX_VALUE; 
 	   static double				maxX  = 3.0 ;   //-Double.MAX_VALUE;
 	   static double				minY  = 0.0 ;   //Double.MAX_VALUE;
 	   static double				maxY  = 50.0 ;  //-Double.MAX_VALUE;
@@ -54,7 +54,7 @@ public class ParticleFiltering extends DeadReckoning {
 			  { magneticmap.N = 4;}
 			else if(file == "1" || file == "2")
 			  { magneticmap.N= 3;
-				minX = 1.0;
+				maxX = 2.0;
 			  } 
 			else
 			  {file = "0";}
@@ -162,8 +162,9 @@ public class ParticleFiltering extends DeadReckoning {
 		 
 		 
 		 public void move(double step_size, double rad_angle)
-		 {    x = x + ((step_size + mstepNoise*(rand.nextGaussian())) * Math.cos(rad_angle));                   // TO DO : Use Particles Theta Value Here
-		      y = y + ((step_size + mstepNoise*(rand.nextGaussian())) * Math.sin(rad_angle));                   // TO DO : Use Velocity Dependent step_noise and turn_noise here  
+		 {    x = x + ((step_size + mstepNoise*(rand.nextGaussian())) * Math.sin(rad_angle));                   // TO DO : Use Particles Theta Value Here   
+		      x %= maxX;
+		      y = y + ((step_size + mstepNoise*(rand.nextGaussian())) * Math.cos(rad_angle));                   // TO DO : Use Velocity Dependent step_noise and turn_noise here  
               theta = rad_angle + mturnNoise*rand.nextGaussian();
               theta %= (2*Math.PI);   
               // To DO : Use Map Bounds Here
@@ -175,7 +176,7 @@ public class ParticleFiltering extends DeadReckoning {
 		 
 		 public void SensorErrorModel(double Magnetic_Measurement)
 		 {     importance_weight = 1.0;
-		       if ((x > minX && x < maxX) && (y > minX && y < maxX))
+		       if ((x > minX && x < maxX) && (y > minY && y < maxY))
 		       {  double position_magnitude = magneticmap.f.value(x,y);	
 		       //   System.out.print(position_magnitude);
 		          importance_weight *= Gaussian(position_magnitude,msenseNoise,Magnetic_Measurement);

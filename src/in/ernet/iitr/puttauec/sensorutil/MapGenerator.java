@@ -41,10 +41,7 @@ public class MapGenerator {
 		            { ys[i] = i;
 		      	    }    
 		          for(int i=0; i < N; i++)
-		            {  if(N == 4) 
-		        	      xs[i] = i;
-		               else
-		            	  xs[i] = i + 1;
+		            { xs[i] = i;
 		      	    }   
 		       } catch (JSONException e) {
 		                e.printStackTrace();

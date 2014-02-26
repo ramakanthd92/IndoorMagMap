@@ -139,8 +139,8 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 						}
 
 						// TODO Remove this offset!
-						double offset = Math.toRadians(10); // 10 degree offset because of map
-						radAngle -= offset;
+						double offset = Math.toRadians(85); // 85 degree offset because of map
+						radAngle += offset;
 						if(radAngle < -Math.PI)
 							radAngle += 2*Math.PI;
 						
