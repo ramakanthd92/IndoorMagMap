@@ -1,7 +1,9 @@
 package in.ernet.iitr.puttauec.algorithms;
 
+import in.ernet.iitr.puttauec.sensors.SensorLifecycleManager;
 import in.ernet.iitr.puttauec.sensorutil.RandomSingleton;
 import in.ernet.iitr.puttauec.algorithms.DeadReckoning;
+import in.ernet.iitr.puttauec.ui.LaunchActivity;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -24,18 +26,25 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static double  measurement  = 0.0;
 	   private static final String TAG = "ParticleFilterReckoning";
 
-	   private Particle[] particles = new Particle[0];
-	   private Particle[] sortedParticles = new Particle[0];
-	   private double[] weightSums = new double[0];
+	   protected Particle[] particles ;
+	   protected Particle[] sortedParticles;
+	   protected double[] weightSums ;
 		
-	   private int particleCount = 200;        //500  //1000  
+	   private static int particleCount = 200;        //500  //1000  
 	   private FileWriter mNumCandidatesFile;
 		
 	   private static final double INIT_SD_X = 0.25;
 	   private static final double INIT_SD_Y = 0.25;
 	   
+	   public static int count = 0;
+		
 	   private FileWriter mMagLogFileWriter;
-	 			
+	   
+	   //@Override
+		public ParticleFiltering(Context ctx) {
+			super(ctx);
+		}
+	   		
 	   public class Pose
 	   { private double x;
 	     private double y;
@@ -99,7 +108,6 @@ public class ParticleFiltering extends DeadReckoning {
 		 private double turn_noise;
 		 private double sense_noise;
 		 private double importance_weight;
-		 
 		 public Particle()
 		 {  x  = minX + (maxX-minX)*rand.nextDouble() ; 
 		    y  = minY + (maxY-minY)*rand.nextDouble() ; 
@@ -141,10 +149,14 @@ public class ParticleFiltering extends DeadReckoning {
 		 
 		 public void SensorErrorModel(double Magnetic_Measurement)
 		 {     importance_weight = 1.0;
-		       double position_magnitude = getMagneticField(x,y);
-		       importance_weight *= Gaussian(position_magnitude,sense_noise,Magnetic_Measurement);
+		       if ((x > minX && x < maxX) && (x > minX && y < maxX))
+		       {  double position_magnitude = LaunchActivity.getMagneticField(x,y);		    	   
+		          importance_weight *= Gaussian(position_magnitude,sense_noise,Magnetic_Measurement);
+		       }  
+		       else 
+		       { importance_weight = 0.0;		    	   
+		       }
 		 } 
-		 
 		 public double getImportanceWeight()
 		 {   return importance_weight;}
 		
@@ -178,14 +190,18 @@ public class ParticleFiltering extends DeadReckoning {
 	  
 	   @Override
 	   protected void init() {
-			super.init();
+		   // System.out.print("  pi ");
+		    super.init();
 			this.particles = new Particle[particleCount];
+			this.weightSums = new double[particleCount + 1];
+			
+		//	System.out.println(particles.length);
 			for (int i = 0; i < particles.length; i++) {
 				particles[i] = new Particle();
 			}
-			this.weightSums = new double[particleCount + 1];
+			
 			normalizeWeights();
-			sortParticles();
+		//	sortParticles();
 			//mRandom = new Random();
 			try {
 				if(mNumCandidatesFile != null) {
@@ -199,10 +215,7 @@ public class ParticleFiltering extends DeadReckoning {
 				throw new RuntimeException(e);
 			}
 		}
-		 
-		public ParticleFiltering(Context ctx) {
-			super(ctx);	
-		}
+		
 		
 		@Override
 		public void setStartPos(float x, float y) {
@@ -232,6 +245,10 @@ public class ParticleFiltering extends DeadReckoning {
 			for (int i = 0; i < next.length; i++) {
 				// select with a preference for better paths 
 				double rsel;
+				//System.out.println("update");
+				//System.out.println(particles.length);
+				//System.out.println(weightSums.length);
+				
 				next[i] = selectParticleAndCopy();
 				double lastWeight = next[i].getImportanceWeight();
 				Pose currentPose = next[i].getPose();
@@ -247,7 +264,7 @@ public class ParticleFiltering extends DeadReckoning {
 			particles = next;
 			// normalize the particle weights
 			normalizeWeights();
-			sortParticles();
+		//	sortParticles();
 			getBestMap();					
 		}
 
@@ -278,7 +295,10 @@ public class ParticleFiltering extends DeadReckoning {
 
 		private Particle selectParticleAndCopy() {
 			double sel = rand.nextDouble();
+			//System.out.print(weightSums.length);			
 			int index = Arrays.binarySearch(weightSums, sel);
+			//System.out.print(index);
+			//System.out.print(particles.length);
 			if (index < 0) {
 				index = - (index + 1);
 			}
@@ -290,22 +310,30 @@ public class ParticleFiltering extends DeadReckoning {
 
 		private double calculateSums() {
 			double totalSum = 0.0;
+			
 			for (int i = 0; i < this.particles.length; i++) {
 				totalSum += this.particles[i].getImportanceWeight();
 			}
 			return totalSum;
 		}
-
+        
 		private void normalizeWeights() {
 			double sum = calculateSums();
+		   // count++;
+		   // System.out.print(count);
+		   // System.out.println(this.particles.length);
+		   // System.out.println(size());
 			if (sum == 0.0) {
 				// sum of weights is zero. Treat all particles equally.
-				System.out.println("Sum of weights is zero. Treat all particles equally.");
+				
+				System.out.println(" Sum of weights is zero. Treat all particles equally.");
+								
 				for (int i = 0; i < this.particles.length; i++) {
 					this.particles[i].setImportanceWeight(1.0);
 				}
 				normalizeWeights();
 			}
+			
 			for (int i = 0; i < this.particles.length; i++) {
 				this.particles[i].normalizeImportanceWeight(sum);
 			}
@@ -314,50 +342,19 @@ public class ParticleFiltering extends DeadReckoning {
 		
 		private void calculateFilterArray() {
 			this.weightSums[0] = 0.0;
+		//	System.out.println(this.particles.length);
 			for (int i = 0; i < this.particles.length; i++) {
 				double value = this.particles[i].getImportanceWeight();
 				this.weightSums[i + 1] = this.weightSums[i] + value;
+			//	System.out.print(weightSums[i + 1]);
+			//	System.out.print(',');
 			}
+			//System.out.println(this.weightSums.length);
 			final double total = this.weightSums[this.weightSums.length-1];                        // TO DO : use Dependance on previous Filter weight too..
 			for (int i = 0; i < this.weightSums.length; i++) {
 				this.weightSums[i] /= total;
 			}
 		}
-
-		private static final Comparator mapFitness = new Comparator() {
-			/** 
-			 * Fitness is an approximation of p(z|x,z,m)
-			 * Larger values are better.
-			 * Values are normalized and selection using monte-carlo selection.
-			 */
-			public int compare(Object o1, Object o2) {
-				Particle map1 = (Particle) o1;
-				Particle map2 = (Particle) o2;
-				if (map1.getImportanceWeight() < map2.getImportanceWeight()) {
-					return -1;
-				} else if (map1.getImportanceWeight() > map2.getImportanceWeight()) {
-					return 1;
-				} else {
-					return 0;
-				}
-			}
-		};
-
-		private void sortParticles() {
-			sortedParticles = new Particle[particles.length];
-			System.arraycopy(particles, 0, sortedParticles, 0, particles.length);
-//			sortedParticles = (LandmarkMap[])particles.clone();
-			Arrays.sort(sortedParticles, particleFitnessComparator);
-		}
-		
-		private static final Comparator<Particle> particleFitnessComparator = new Comparator<Particle>() {
-			public int compare(Particle o1, Particle o2) {
-				double w1 = o2.getImportanceWeight();
-				double w2 = o2.getImportanceWeight();
-				if( w1 == w2 ) return 0;
-				return (w1 < w2)?1:-1;
-			}
-		};
         
 		@Override
 		public void startLogging() {
@@ -403,4 +400,45 @@ public class ParticleFiltering extends DeadReckoning {
 				particles[i].y = mStartY + (float)(INIT_SD_Y*rand.nextGaussian());
 			}
 		}	
+	/*	private static final Comparator mapFitness = new Comparator() {
+			/** 
+			 * Fitness is an approximation of p(z|x,z,m)
+			 * Larger values are better.
+			 * Values are normalized and selection using monte-carlo selection.
+			 */
+	/*		public int compare(Object o1, Object o2) {
+				Particle map1 = (Particle) o1;
+				Particle map2 = (Particle) o2;
+				if (map1.getImportanceWeight() < map2.getImportanceWeight()) {
+					return -1;
+				} else if (map1.getImportanceWeight() > map2.getImportanceWeight()) {
+					return 1;
+				} else {
+					return 0;
+				}
+			}
+		};
+*/
+	/*	private void sortParticles() {
+			System.out.println(particles.length);
+			sortedParticles = new Particle[particles.length];
+			System.arraycopy(particles, 0, sortedParticles, 0, particles.length);
+//			sortedParticles = (LandmarkMap[])particles.clone();
+			Arrays.sort(sortedParticles, particleFitnessComparator);
+			System.out.println(particles.length);
+			System.out.println(weightSums.length);
+			System.out.println(sortedParticles.length);
+			
+		}
+	*/	
+/*		private static final Comparator<Particle> particleFitnessComparator = new Comparator<Particle>() {
+			public int compare(Particle o1, Particle o2) {
+				double w1 = o1.getImportanceWeight();
+				double w2 = o2.getImportanceWeight();
+				if( w1 == w2 ) return 0;
+				return (w1 < w2)?1:-1;
+			}
+		};
+  */      
+		
 }

@@ -12,6 +12,7 @@
 
     <string-array name="activities">
         <item>Dead Reckoning</item>
+        <item>Particle Filter Reckoning</item>
         <item>Sensor Logger Activity</item>
     </string-array>
 

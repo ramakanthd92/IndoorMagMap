@@ -66,11 +66,13 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	protected FileWriter mStepLogFileWriter;
 
 	public DeadReckoning(Context ctx) {
+		System.out.print("  d  ");  
 		init();		
 		mSensorLifecycleManager = SensorLifecycleManager.getInstance(ctx);
 	}
 
 	protected void init() {
+		System.out.print("  di ");  
 		mAccelHistory = new LinkedList<float[]>();
 		mAccelHistory.add(new float[3]); // Added to avoid bounds checks while accessing
 		mAccelHistory.add(new float[3]); // indices [i-1] and [i-2]
