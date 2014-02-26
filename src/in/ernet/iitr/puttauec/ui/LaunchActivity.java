@@ -23,9 +23,10 @@ import android.widget.ListView;
 public class LaunchActivity extends ListActivity {
 	
 	private static final int DEAD_RECKONING_ACTIVITY = 0;
-	private static final int SENSOR_LOGGER_ACTIVITY = 1;
+	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY = 1;
+	private static final int SENSOR_LOGGER_ACTIVITY = 2;
 	private static final String TAG = "LaunchActivity";
-	public static double [][] magnitudes = new double[51][4];
+	public static double [][] magnitudes = new double[4][51];
 	public static double [] xs = new double[4];
 	public static double [] ys = new double[51];
 	public static BicubicSplineInterpolatingFunction f; 
@@ -46,13 +47,16 @@ public class LaunchActivity extends ListActivity {
 		Intent launchIntent = new Intent(this, DeadReckoningActivity.class);;
 		System.out.println("a");
 		switch(position) {
-		case DEAD_RECKONING_ACTIVITY:
-			System.out.println("Dead");
+		case DEAD_RECKONING_ACTIVITY:			
 			startActivityForResult(launchIntent, DEAD_RECKONING_ACTIVITY);
 			break;
+		
+	    case PARTICLE_FILTER_RECKONING_ACTIVITY:
+	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
+	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY);
+			break;			
 			
 		case SENSOR_LOGGER_ACTIVITY:
-			System.out.println("Sensor");
 			launchIntent = new Intent(this, SensorLoggerActivity.class);
 			startActivity(launchIntent);
 			break;
@@ -96,11 +100,17 @@ public class LaunchActivity extends ListActivity {
 		        	   j = (Integer.valueOf(name)-1) / 51;
 		      	       k = (Integer.valueOf(name)-1) % 51; 		   
 		               magnitudes[j][k] = json_array.getDouble(3);
-		      	     }     
+		      	     }    
+		          for(int i=0; i < 51; i++)
+		            { ys[i] = i;
+		      	    }    
+		          for(int i=0; i < 4; i++)
+		            { xs[i] = i;
+		      	    }   
 		       } catch (JSONException e) {
 		                e.printStackTrace();
 		       }
-		    InterpolationFuntion();
+		       InterpolationFuntion();
 		    }
     
    public static void InterpolationFuntion() 

@@ -1,5 +1,6 @@
 package in.ernet.iitr.puttauec.algorithms;
 
+import in.ernet.iitr.puttauec.sensors.SensorLifecycleManager;
 import in.ernet.iitr.puttauec.sensorutil.RandomSingleton;
 import in.ernet.iitr.puttauec.algorithms.DeadReckoning;
 import in.ernet.iitr.puttauec.ui.LaunchActivity;
@@ -29,14 +30,21 @@ public class ParticleFiltering extends DeadReckoning {
 	   private Particle[] sortedParticles = new Particle[0];
 	   private double[] weightSums = new double[0];
 		
-	   private int particleCount = 200;        //500  //1000  
+	   private static int particleCount = 200;        //500  //1000  
 	   private FileWriter mNumCandidatesFile;
 		
 	   private static final double INIT_SD_X = 0.25;
 	   private static final double INIT_SD_Y = 0.25;
 	   
+	   public static int count = 0;
+		
 	   private FileWriter mMagLogFileWriter;
-	 			
+	   
+	   //@Override
+		public ParticleFiltering(Context ctx) {
+			super(ctx);
+		}
+	   		
 	   public class Pose
 	   { private double x;
 	     private double y;
@@ -100,7 +108,6 @@ public class ParticleFiltering extends DeadReckoning {
 		 private double turn_noise;
 		 private double sense_noise;
 		 private double importance_weight;
-		 
 		 public Particle()
 		 {  x  = minX + (maxX-minX)*rand.nextDouble() ; 
 		    y  = minY + (maxY-minY)*rand.nextDouble() ; 
@@ -179,8 +186,10 @@ public class ParticleFiltering extends DeadReckoning {
 	  
 	   @Override
 	   protected void init() {
-			super.init();
+		    System.out.print("  pi ");
+		    super.init();
 			this.particles = new Particle[particleCount];
+			System.out.println(particles.length);
 			for (int i = 0; i < particles.length; i++) {
 				particles[i] = new Particle();
 			}
@@ -200,10 +209,7 @@ public class ParticleFiltering extends DeadReckoning {
 				throw new RuntimeException(e);
 			}
 		}
-		 
-		public ParticleFiltering(Context ctx) {
-			super(ctx);	
-		}
+		
 		
 		@Override
 		public void setStartPos(float x, float y) {
@@ -291,6 +297,7 @@ public class ParticleFiltering extends DeadReckoning {
 
 		private double calculateSums() {
 			double totalSum = 0.0;
+			
 			for (int i = 0; i < this.particles.length; i++) {
 				totalSum += this.particles[i].getImportanceWeight();
 			}
@@ -299,14 +306,19 @@ public class ParticleFiltering extends DeadReckoning {
 
 		private void normalizeWeights() {
 			double sum = calculateSums();
+		    count++;
+		    System.out.println(size());
 			if (sum == 0.0) {
 				// sum of weights is zero. Treat all particles equally.
-				System.out.println("Sum of weights is zero. Treat all particles equally.");
+				System.out.print(sum);
+				System.out.println(" Sum of weights is zero. Treat all particles equally.");
+				System.out.println(count);				
 				for (int i = 0; i < this.particles.length; i++) {
 					this.particles[i].setImportanceWeight(1.0);
 				}
 				normalizeWeights();
 			}
+			
 			for (int i = 0; i < this.particles.length; i++) {
 				this.particles[i].normalizeImportanceWeight(sum);
 			}
