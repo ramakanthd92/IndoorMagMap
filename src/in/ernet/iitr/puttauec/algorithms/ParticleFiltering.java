@@ -1,17 +1,17 @@
 package in.ernet.iitr.puttauec.algorithms;
 
-import in.ernet.iitr.puttauec.sensors.SensorLifecycleManager;
+import in.ernet.iitr.puttauec.sensorutil.MapGenerator;
 import in.ernet.iitr.puttauec.sensorutil.RandomSingleton;
-import in.ernet.iitr.puttauec.algorithms.DeadReckoning;
-import in.ernet.iitr.puttauec.ui.LaunchActivity;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Random;
+
+import org.apache.commons.math3.analysis.interpolation.BicubicSplineInterpolatingFunction;
 
 import android.content.Context;
 import android.text.format.DateFormat;
@@ -19,13 +19,14 @@ import android.util.Log;
 
 public class ParticleFiltering extends DeadReckoning {
 	   private static final Random rand = RandomSingleton.instance;
-	   static double				minX  = 0  ;  //Double.MAX_VALUE;
-	   static double				maxX  = 2 ;   //-Double.MAX_VALUE;
-	   static double				minY  = 0 ;   //Double.MAX_VALUE;
-	   static double				maxY  = 50 ;  //-Double.MAX_VALUE;
+	   static double				minX  = 0.0  ;  //Double.MAX_VALUE;
+	   static double				maxX  = 3.0 ;   //-Double.MAX_VALUE;
+	   static double				minY  = 0.0 ;   //Double.MAX_VALUE;
+	   static double				maxY  = 50.0 ;  //-Double.MAX_VALUE;
 	   private static double  measurement  = 0.0;
 	   private static final String TAG = "ParticleFilterReckoning";
-
+	   
+       protected MapGenerator magneticmap ; 
 	   protected Particle[] particles ;
 	   protected Particle[] sortedParticles;
 	   protected double[] weightSums ;
@@ -43,7 +44,31 @@ public class ParticleFiltering extends DeadReckoning {
 	   //@Override
 		public ParticleFiltering(Context ctx) {
 			super(ctx);
+		    String json_obj =loadJSONFromAsset(ctx);
+			magneticmap = new MapGenerator(json_obj);
+			 for(double i = 0.0 ; i <= 50.0 ; i += 0.5)
+				{  for(double j = 0.0; j < 3.0  ; j += 0.5)
+					{ System.out.print(magneticmap.f.value(j,i));
+					  System.out.print(" ");
+					}
+					System.out.println(" ");
+			}    
 		}
+		
+		public static String loadJSONFromAsset(Context context) {
+	        String json = null;
+	        try {	        	
+	        	InputStream is = context.getAssets().open("w0.json");            
+	        	int size = is.available();
+	            byte[] buffer = new byte[size];
+	            is.read(buffer);
+	            is.close();
+	            json = new String(buffer, "UTF-8");
+	        } catch (IOException ex) {
+	            ex.printStackTrace();
+	        }
+	        return json;
+	    }
 	   		
 	   public class Pose
 	   { private double x;
@@ -110,11 +135,12 @@ public class ParticleFiltering extends DeadReckoning {
 		 private double importance_weight;
 		 public Particle()
 		 {  x  = minX + (maxX-minX)*rand.nextDouble() ; 
+		    
 		    y  = minY + (maxY-minY)*rand.nextDouble() ; 
 		    theta = 2*Math.PI*rand.nextDouble();
-		    step_noise = 0.0 ; 
-		    turn_noise = 0.0; 
-		    sense_noise = 0.0; 
+		    step_noise = 0.3 ; 
+		    turn_noise = 0.10; 
+		    sense_noise = 10.0; 
 		    importance_weight = 1.0;
 		 }
 		 
@@ -149,12 +175,13 @@ public class ParticleFiltering extends DeadReckoning {
 		 
 		 public void SensorErrorModel(double Magnetic_Measurement)
 		 {     importance_weight = 1.0;
-		       if ((x > minX && x < maxX) && (x > minX && y < maxX))
-		       {  double position_magnitude = LaunchActivity.getMagneticField(x,y);		    	   
+		       if ((x > minX && x < maxX) && (y > minX && y < maxX))
+		       {  double position_magnitude = magneticmap.f.value(x,y);	
+		          System.out.print(position_magnitude);
 		          importance_weight *= Gaussian(position_magnitude,sense_noise,Magnetic_Measurement);
 		       }  
 		       else 
-		       { importance_weight = 0.0;		    	   
+		       { importance_weight = 0.005;		    	   
 		       }
 		 } 
 		 public double getImportanceWeight()
@@ -241,14 +268,14 @@ public class ParticleFiltering extends DeadReckoning {
 		@Override
 		public void updateLocation(double step_size, double rad_angle) {
 			// localLandmarks are with respect to the robot
+			System.out.println("update");
 			Particle[] next = new Particle[size()];
 			for (int i = 0; i < next.length; i++) {
 				// select with a preference for better paths 
 				double rsel;
-				//System.out.println("update");
+				
 				//System.out.println(particles.length);
 				//System.out.println(weightSums.length);
-				
 				next[i] = selectParticleAndCopy();
 				double lastWeight = next[i].getImportanceWeight();
 				Pose currentPose = next[i].getPose();
@@ -257,8 +284,18 @@ public class ParticleFiltering extends DeadReckoning {
                  ActionModel averageAction = prevAction.average(action);
                 */   	
 				// TODO: Should order move and sense  
+				
 				next[i].move(step_size,rad_angle);
-			    next[i].SensorErrorModel(measurement);		
+			    next[i].SensorErrorModel(measurement);
+			    System.out.print(",x = ");
+			    System.out.print(next[i].get_X());
+			    System.out.print(",y = ");
+			    System.out.print(next[i].get_Y());
+			    System.out.print(",imp = ");
+			    System.out.print(next[i].getImportanceWeight());
+			    System.out.print(", meas =");
+			    System.out.println(measurement);
+			   
 			  //  next[i].updateMap( nextPose, observations, sensorImageGen, dt, sensorErrorModel, processError, // assoc,//useKnownDataAssociations,lmGen);
 			}
 			particles = next;
@@ -310,10 +347,14 @@ public class ParticleFiltering extends DeadReckoning {
 
 		private double calculateSums() {
 			double totalSum = 0.0;
-			
+			System.out.println(particles.length);
 			for (int i = 0; i < this.particles.length; i++) {
 				totalSum += this.particles[i].getImportanceWeight();
+				System.out.print(particles[i].getImportanceWeight());
+				System.out.print(',');
 			}
+			System.out.println(totalSum);
+			
 			return totalSum;
 		}
         
@@ -346,8 +387,8 @@ public class ParticleFiltering extends DeadReckoning {
 			for (int i = 0; i < this.particles.length; i++) {
 				double value = this.particles[i].getImportanceWeight();
 				this.weightSums[i + 1] = this.weightSums[i] + value;
-			//	System.out.print(weightSums[i + 1]);
-			//	System.out.print(',');
+				System.out.print(value);
+				System.out.print(',');
 			}
 			//System.out.println(this.weightSums.length);
 			final double total = this.weightSums[this.weightSums.length-1];                        // TO DO : use Dependance on previous Filter weight too..
@@ -442,3 +483,4 @@ public class ParticleFiltering extends DeadReckoning {
   */      
 		
 }
+;

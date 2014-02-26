@@ -59,10 +59,10 @@ public class SensorLifecycleManager {
 				
    		mSensorManager.registerListener(mSensorEventListener,
 				mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
-				SENSOR_DELAY);
+			SENSOR_DELAY); */	
 		mSensorManager.registerListener(mSensorEventListener,
 				mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
-				SENSOR_DELAY); */
+				SENSOR_DELAY); 
 	}
 
 	@SuppressWarnings("unused")
