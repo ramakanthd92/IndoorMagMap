@@ -122,7 +122,7 @@ public class DeadReckoningActivity extends Activity {
 		} else {
 			menu.add(0, DEAD_RECKONING_LOG_STEP_DATA, 0, "Start Step Path Logging");
 		}
-		//menu.add(0, DEAD_RECKONING_STEP_SIZE_ESTIMATE, 0, "Estimate Step Size");
+		menu.add(0, DEAD_RECKONING_STEP_SIZE_ESTIMATE, 0, "Estimate Step Size");
 		menu.add(0, DEAD_RECKONING_LOG_PATH, 0, "Log current displayed path");
 		return result;
 	}
@@ -141,7 +141,6 @@ public class DeadReckoningActivity extends Activity {
 			break;
 		case DEAD_RECKONING_STARTPOS:
 			Intent intent = new Intent(this,ScanActivity.class);
-	        System.out.println("Scan-Dead");
 	        startActivityForResult(intent, DEAD_RECKONING_STARTPOS);
 			break;
 			
@@ -155,13 +154,11 @@ public class DeadReckoningActivity extends Activity {
 			}
 			break;
 			
-		/*case DEAD_RECKONING_STEP_SIZE_ESTIMATE:
-			Intent scanIntent = new Intent(this, );
-	        scanIntent.setPackage("com.google.zxing.client.android");
-	        scanIntent.putExtra("SCAN_MODE", "QR_CODE_MODE");
-	        startActivityForResult(scanIntent, DEAD_RECKONING_STEP_SIZE_ESTIMATE);
+		case DEAD_RECKONING_STEP_SIZE_ESTIMATE:
+			Intent scanIntent = new Intent(this,ScanActivity.class);
+	         startActivityForResult(scanIntent, DEAD_RECKONING_STEP_SIZE_ESTIMATE);
 			break;
-	*/	case DEAD_RECKONING_LOG_PATH:
+		case DEAD_RECKONING_LOG_PATH:
 			Date now = new Date(System.currentTimeMillis());
 			try {
 				FileWriter pathLoggingFile = new FileWriter(new File(Environment.getExternalStorageDirectory() + File.separator + "samples", "drPathLog." + DateFormat.format("yyyy-MM-dd-kk-mm-ss", now) + ".csv"));
@@ -218,8 +215,8 @@ public class DeadReckoningActivity extends Activity {
 				}
 				break;
 				
-			case DEAD_RECKONING_STEP_SIZE_ESTIMATE:
-				break;
+			case DEAD_RECKONING_STEP_SIZE_ESTIMATE:				
+			
 			case DEAD_RECKONING_STARTPOS:
 				switch(resultCode) {
 				case RESULT_OK:
@@ -227,17 +224,37 @@ public class DeadReckoningActivity extends Activity {
 		            String format = data.getStringExtra("SCAN_RESULT_FORMAT");
 		            Toast.makeText(this, "QRCode: " + contents + " format: " + format, Toast.LENGTH_LONG).show();
 		            if(format.equals("QR_CODE")) {
-		            	try {
-		            	    JSONObject scanQRCode = new JSONObject(contents);
+		            try { 
+		            	   	JSONObject scanQRCode = new JSONObject(contents);
 		            		if(scanQRCode.has(KEY_VERSION) && scanQRCode.getInt(KEY_VERSION) >= MIN_QRCODE_VERSION && scanQRCode.has(KEY_QR_TYPE) && scanQRCode.getString(KEY_QR_TYPE).equalsIgnoreCase(MAP_POINT)) {
 		            			float x = (float)scanQRCode.getDouble("X");
 		            			float y = (float)scanQRCode.getDouble("Y");
-		            			if(requestCode == DEAD_RECKONING_STARTPOS) {
+		            			float[] location = mDeadReckoning.getLocation();
+		            			
+		            			if(requestCode == DEAD_RECKONING_STEP_SIZE_ESTIMATE) {
+		            				int numSteps = mDeadReckoning.getStepCount();
+		            				double actualDistance = Math.sqrt(Math.pow(x - mDeadReckoning.getmStartX(), 2) + Math.pow(y - mDeadReckoning.getmStartY(), 2));
+		            				double estimatedDistance = Math.sqrt(Math.pow(location[0] - mDeadReckoning.getmStartX(), 2) + Math.pow(location[1] - mDeadReckoning.getmStartY(), 2));
+		            				double distancePerStep = (actualDistance/numSteps);
+		            				double trainingConstant = mDeadReckoning.getTrainingConstant() * actualDistance/estimatedDistance;
+		            				
+		            				Date now = new Date(System.currentTimeMillis());
+		            				try {
+		            					FileWriter stepDistance = new FileWriter(new File(Environment.getExternalStorageDirectory() + File.separator + "samples", "stepDistance." + DateFormat.format("yyyy-MM-dd-kk-mm-ss", now)));
+			            				stepDistance.write("" + now.getTime() + "," + + numSteps + "," + actualDistance + "," + estimatedDistance + "," + distancePerStep + "," + trainingConstant + "\n");
+			            				stepDistance.flush();
+										stepDistance.close();
+										Toast.makeText(this, "Training Constant: " + trainingConstant + " written to file.", Toast.LENGTH_SHORT).show();
+									} catch (IOException e) {
+										Log.e(TAG, "Writing to stepDistance file failed!", e);
+										e.printStackTrace();
+										throw new RuntimeException(e);
+									}
+		            			} else if(requestCode == DEAD_RECKONING_STARTPOS) {
 			            			// TODO Remove this hack
 			            				mDeadReckoning.restart();
 			            				mDeadReckoning.setStartPos(x, y);
-			            				//mDeadReckoning.setLocation(x, y);
-			            			
+			            				mDeadReckoning.setLocation(x, y);
 		            			}
 		            		} else {
 		            			Log.i(TAG, "Missing some pre-conditions!");

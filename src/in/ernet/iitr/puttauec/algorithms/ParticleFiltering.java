@@ -33,7 +33,6 @@ public class ParticleFiltering extends DeadReckoning {
 	   protected Particle[] sortedParticles;
 	   protected double[] weightSums ;
 		
-	   private FileWriter mNumCandidatesFile;
 	   private static int particleCount = DEFAULT_PARTICLE_COUNT;        //500  //1000  //2000
 	   private static double msenseNoise = DEFAULT_STEP_NOISE_THRESHOLD/1000.f;        //500  //1000
 	   private static double mstepNoise = DEFAULT_SENSE_NOISE_THRESHOLD/1000.f;        //500  //1000  
@@ -42,11 +41,13 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static final double INIT_SD_X = 1.0;
 	   private static final double INIT_SD_Y = 1.0;
 	   private static String file = "0";  
+	   private double mmse = 0.0;
 	
 	   
 	   public static int count = 0;
 		
 	   private FileWriter mMagLogFileWriter;
+	   private FileWriter mMMSEDistanceFileWriter;
 	   
 	   //@Override
 		public ParticleFiltering(Context ctx,String file) {
@@ -179,7 +180,7 @@ public class ParticleFiltering extends DeadReckoning {
 		 {     importance_weight = 1.0;
 		       if ((x > minX && x < maxX) && (y > minY && y < maxY))
 		       {  double position_magnitude = magneticmap.f.value(x,y);	
-		       //   System.out.print(position_magnitude);
+		          System.out.print(position_magnitude);
 		          importance_weight *= Gaussian(position_magnitude,msenseNoise,Magnetic_Measurement);
 		       }  
 		       else 
@@ -219,30 +220,17 @@ public class ParticleFiltering extends DeadReckoning {
 	  
 	   @Override
 	   protected void init() {
-		   // System.out.print("  pi ");
+	    // System.out.print("  pi ");
 		    super.init();
 			this.particles = new Particle[particleCount];
 			this.weightSums = new double[particleCount + 1];
-			
 		//	System.out.println(particles.length);
 			for (int i = 0; i < particles.length; i++) {
 				particles[i] = new Particle();
 			}
-			
 			normalizeWeights();
 		//	sortParticles();
-			//mRandom = new Random();
-			try {
-				if(mNumCandidatesFile != null) {
-					mNumCandidatesFile.flush();
-					mNumCandidatesFile.close();
-					mNumCandidatesFile = null;
-				}
-			} catch(IOException e) {
-				e.printStackTrace();
-				Log.e(TAG, "Couldn't close numCandidates file!",e);
-				throw new RuntimeException(e);
-			}
+		//  mRandom = new Random();
 		}
 		
 	    @Override
@@ -259,7 +247,7 @@ public class ParticleFiltering extends DeadReckoning {
 				try {
 					mMagLogFileWriter.write("" + timestamp + "," + deltaT + "," + values[0] + ","+ values[1] +","+ values[2] + "," + measurement + "\n");
 				} catch (IOException e) {
-					Log.e(TAG, "Log file write for acceleration failed!!!\n", e);
+					Log.e(TAG, "Log file write for Magnetic Field failed!!!\n", e);
 					e.printStackTrace();
 					throw new RuntimeException(e);
 				}
@@ -303,10 +291,32 @@ public class ParticleFiltering extends DeadReckoning {
 			// normalize the particle weights
 			normalizeWeights();
 		//	sortParticles();
-			getBestMap();					
+		//   getBestMap();
+			 mmse = minimumMeanSquareDistance();
+			if(this.isLogging()) {
+				try {
+					mMMSEDistanceFileWriter.write("" + particleCount + "," + step_size + "," + rad_angle  +"," + mmse + "," + getLocation()[0]  + "," + getLocation()[1] +"\n");
+				} catch (IOException e) {
+					Log.e(TAG, "Log file write for MMSEDistance failed!!!\n", e);
+					e.printStackTrace();
+					throw new RuntimeException(e);
+				}
+			}			
 		}
-
-		public void getBestMap() {
+        
+		public double minimumMeanSquareDistance()
+		{  double dx = 0.0, dy = 0.0;
+		   double sum = 0.0, err = 0.0; 
+		   Particle r = getBestMap(); 
+		   for ( int i = 0; i < particles.length; i++)  // calculate mean error
+			{  dx = (particles[i].get_X() - r.get_X());
+	           dy = (particles[i].get_Y() - r.get_Y());
+	           err = Math.sqrt(dx * dx + dy * dy);
+	           sum += err;
+			}
+		   return (sum/particles.length);
+		}
+		public Particle getBestMap() {
 			Particle rc = particles[0];
 			double best = rc.getImportanceWeight();
 			for (int i = 1; i < particles.length; i++) {
@@ -317,6 +327,7 @@ public class ParticleFiltering extends DeadReckoning {
 				}
 			}
 			setLocation(rc.get_X(),rc.get_Y());
+			return rc;
 		}
 
 		public int size() {
@@ -400,9 +411,12 @@ public class ParticleFiltering extends DeadReckoning {
         
 		@Override
 		public void startLogging() {
+			
 			try {
 				String r = (String) (DateFormat.format("yyyy-MM-dd-hh-mm-ss", new java.util.Date()) );
 				String logFileBaseName = "pfLog." + r;
+				mAccelLogFileWriter = new FileWriter(new File(SAMPLES_DIR, logFileBaseName + ".accel.csv"));
+				mMMSEDistanceFileWriter = new FileWriter(new File(SAMPLES_DIR, logFileBaseName + ".mmse.csv"));
 				mMagLogFileWriter = new FileWriter(new File(SAMPLES_DIR, logFileBaseName + ".mag.csv"));
 				mStepLogFileWriter = new FileWriter(new File(SAMPLES_DIR, logFileBaseName + ".pfsteps.csv"));
 			} catch (IOException e) {
@@ -418,6 +432,8 @@ public class ParticleFiltering extends DeadReckoning {
 			mIsLogging = false;
 			
 			try {
+				mMMSEDistanceFileWriter.flush();
+				mMMSEDistanceFileWriter.close();
 				mMagLogFileWriter.flush();
 				mMagLogFileWriter.close();
 				mStepLogFileWriter.flush();
@@ -455,6 +471,10 @@ public class ParticleFiltering extends DeadReckoning {
 		
 		public double getStepNoise () {
 			return  mstepNoise;
+		}
+		
+		public double getMMSE() {
+			return  mmse;
 		}
 		
 		public void setParticleCount (double pc) {

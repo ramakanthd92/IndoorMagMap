@@ -41,8 +41,8 @@ public class ParticleFilteringActivity extends Activity {
 	private static final int PARFIL_RECKONING_RESTART = Menu.FIRST + 2;
 	private static final int PARFIL_RECKONING_STARTPOS = Menu.FIRST + 3;
 	private static final int PARFIL_RECKONING_LOG_STEP_DATA = Menu.FIRST + 4;
-//	private static final int PARFIL_RECKONING_STEP_SIZE_ESTIMATE = Menu.FIRST + 5;
-	private static final int PARFIL_RECKONING_LOG_PATH = Menu.FIRST + 5;
+	private static final int PARFIL_RECKONING_STEP_SIZE_ESTIMATE = Menu.FIRST + 5;
+	private static final int PARFIL_RECKONING_LOG_PATH = Menu.FIRST + 6;
 	
 	// Constants for QRCode data
 		private static final String KEY_VERSION = "Version";
@@ -73,24 +73,28 @@ public class ParticleFilteringActivity extends Activity {
 	    	float mcurrentx = mlocation[0];  
 	    	float mcurrenty = mlocation[1];
 	    	int msteps = mDeadReckoning.getStepCount();
+	    	double mMMSE_err = mDeadReckoning.getMMSE();
 	        
 	    	Log.d(TAG,Float.toString(mstartx));
 	    	Log.d(TAG,Float.toString(mstarty));
 	    	Log.d(TAG,Float.toString(mcurrentx));
 	    	Log.d(TAG,Float.toString(mcurrenty));
 	    	Log.d(TAG,Integer.toString(msteps));
+	    	Log.d(TAG,Double.toString(mMMSE_err));
 	    	
 	    	TextView startx = (TextView) findViewById(R.id.startx);  	
 	    	TextView starty = (TextView) findViewById(R.id.starty);
 	    	TextView currentx = (TextView) findViewById(R.id.currentx);  	
 	    	TextView currenty = (TextView) findViewById(R.id.currenty);
 	    	TextView stepcount = (TextView) findViewById(R.id.stepcount);  	
+	    	TextView mmse_err = (TextView) findViewById(R.id.mmse_error);
 	    	
 	    	startx.setText(Float.toString(mstartx));
 	    	starty.setText(Float.toString(mstarty));
 	    	currentx.setText(Float.toString(mcurrentx));
 	    	currenty.setText(Float.toString(mcurrenty));
 	    	stepcount.setText(Integer.toString(msteps));
+	    	mmse_err.setText(Double.toString(mMMSE_err));
 	   }
 	  
 	@Override
@@ -103,11 +107,11 @@ public class ParticleFilteringActivity extends Activity {
 		menu.add(0, PARFIL_RECKONING_RESTART, 0, "Restart Particle Filter Reckoning");
 		menu.add(0, PARFIL_RECKONING_STARTPOS, 0, "Scan Location");
 		if(mDeadReckoning.isLogging()) {
-			menu.add(0, PARFIL_RECKONING_LOG_STEP_DATA, 0, "Stop Step Path Logging");
+			menu.add(0, PARFIL_RECKONING_LOG_STEP_DATA, 0, "Stop Path Data Logging");
 		} else {
-			menu.add(0, PARFIL_RECKONING_LOG_STEP_DATA, 0, "Start Step Path Logging");
+			menu.add(0, PARFIL_RECKONING_LOG_STEP_DATA, 0, "Start Path Data Logging");
 		}
-		//menu.add(0, PARFIL_RECKONING_STEP_SIZE_ESTIMATE, 0, "Estimate Step Size");
+		menu.add(0, PARFIL_RECKONING_STEP_SIZE_ESTIMATE, 0, "Estimate Step Size");
 		menu.add(0, PARFIL_RECKONING_LOG_PATH, 0, "Log current displayed path");
 		return result;
 	}
@@ -133,7 +137,6 @@ public class ParticleFilteringActivity extends Activity {
 			break;
 		case PARFIL_RECKONING_STARTPOS:
 			Intent intent = new Intent(this,ScanActivity.class);
-	      //  System.out.println("Scan-Dead");
 	        startActivityForResult(intent, PARFIL_RECKONING_STARTPOS);
 			break;
 			
@@ -147,13 +150,11 @@ public class ParticleFilteringActivity extends Activity {
 			}
 			break;
 			
-		/*case PARFIL_RECKONING_STEP_SIZE_ESTIMATE:
-			Intent scanIntent = new Intent(this, );
-	        scanIntent.setPackage("com.google.zxing.client.android");
-	        scanIntent.putExtra("SCAN_MODE", "QR_CODE_MODE");
+		case PARFIL_RECKONING_STEP_SIZE_ESTIMATE:
+			Intent scanIntent = new Intent(this, ScanActivity.class);
 	        startActivityForResult(scanIntent, PARFIL_RECKONING_STEP_SIZE_ESTIMATE);
 			break;
-	*/	case PARFIL_RECKONING_LOG_PATH:
+		case PARFIL_RECKONING_LOG_PATH:
 			Date now = new Date(System.currentTimeMillis());
 			try {
 				FileWriter pathLoggingFile = new FileWriter(new File(Environment.getExternalStorageDirectory() + File.separator + "samples", "pfPathLog." + DateFormat.format("yyyy-MM-dd-kk-mm-ss", now) + ".csv"));
@@ -226,8 +227,7 @@ public class ParticleFilteringActivity extends Activity {
 				break;
 				
 				
-	//		case PARFIL_RECKONING_STEP_SIZE_ESTIMATE:
-		//		break;
+			case PARFIL_RECKONING_STEP_SIZE_ESTIMATE:
 			case PARFIL_RECKONING_STARTPOS:
 				switch(resultCode) {
 				case RESULT_OK:
@@ -235,16 +235,37 @@ public class ParticleFilteringActivity extends Activity {
 		            String format = data.getStringExtra("SCAN_RESULT_FORMAT");
 		            Toast.makeText(this, "QRCode: " + contents + " format: " + format, Toast.LENGTH_LONG).show();
 		            if(format.equals("QR_CODE")) {
-		            	try {
-		            	    JSONObject scanQRCode = new JSONObject(contents);
+		            try { 
+		            	   	JSONObject scanQRCode = new JSONObject(contents);
 		            		if(scanQRCode.has(KEY_VERSION) && scanQRCode.getInt(KEY_VERSION) >= MIN_QRCODE_VERSION && scanQRCode.has(KEY_QR_TYPE) && scanQRCode.getString(KEY_QR_TYPE).equalsIgnoreCase(MAP_POINT)) {
 		            			float x = (float)scanQRCode.getDouble("X");
 		            			float y = (float)scanQRCode.getDouble("Y");
-		            			if(requestCode == PARFIL_RECKONING_STARTPOS) {
+		            			float[] location = mDeadReckoning.getLocation();
+		            			
+		            			if(requestCode == PARFIL_RECKONING_STEP_SIZE_ESTIMATE) {
+		            				int numSteps = mDeadReckoning.getStepCount();
+		            				double actualDistance = Math.sqrt(Math.pow(x - mDeadReckoning.getmStartX(), 2) + Math.pow(y - mDeadReckoning.getmStartY(), 2));
+		            				double estimatedDistance = Math.sqrt(Math.pow(location[0] - mDeadReckoning.getmStartX(), 2) + Math.pow(location[1] - mDeadReckoning.getmStartY(), 2));
+		            				double distancePerStep = (actualDistance/numSteps);
+		            				double trainingConstant = mDeadReckoning.getTrainingConstant() * actualDistance/estimatedDistance;
+		            				
+		            				Date now = new Date(System.currentTimeMillis());
+		            				try {
+		            					FileWriter stepDistance = new FileWriter(new File(Environment.getExternalStorageDirectory() + File.separator + "samples", "stepDistance." + DateFormat.format("yyyy-MM-dd-kk-mm-ss", now)));
+			            				stepDistance.write("" + now.getTime() + "," + + numSteps + "," + actualDistance + "," + estimatedDistance + "," + distancePerStep + "," + trainingConstant + "\n");
+			            				stepDistance.flush();
+										stepDistance.close();
+										Toast.makeText(this, "Training Constant: " + trainingConstant + " written to file.", Toast.LENGTH_SHORT).show();
+									} catch (IOException e) {
+										Log.e(TAG, "Writing to stepDistance file failed!", e);
+										e.printStackTrace();
+										throw new RuntimeException(e);
+									}
+		            			} else if(requestCode == PARFIL_RECKONING_STARTPOS) {
 			            			// TODO Remove this hack
 			            				mDeadReckoning.restart();
 			            				mDeadReckoning.setStartPos(x, y);
-			            			  //mDeadReckoning.setLocation(x, y);			            			
+			            				mDeadReckoning.setLocation(x, y);
 		            			}
 		            		} else {
 		            			Log.i(TAG, "Missing some pre-conditions!");
