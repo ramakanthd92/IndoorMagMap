@@ -40,8 +40,8 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	// Instance variables
 	LinkedList<float[]> mAccelHistory;
 	private float mLocation[];
-	private float mTrainingConstant = DEFAULT_TRAINING_CONSTANT/1000.f;
-	private float mAccelThreshold = DEFAULT_ACCEL_THRESHOLD/1000.f;
+	protected float mTrainingConstant = DEFAULT_TRAINING_CONSTANT/1000.f;
+	protected float mAccelThreshold = DEFAULT_ACCEL_THRESHOLD/1000.f;
 	private float mStartX; // on a 0-1 scale based on the map
 	private float mStartY;
 	private int mMapWidth = DEFAULT_MAP_WIDTH;

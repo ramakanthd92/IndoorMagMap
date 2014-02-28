@@ -46,7 +46,7 @@ public class MapGenerator {
 		        	   else if(j >= 12 && j <=15)
 		        	   		{ j -= 6;		        		   
 		        	   		}
-		              magnitudes[j][k] = json_array.getDouble(3);       //hard coded form of data input from the JSON 3rd column
+		              magnitudes[j][k] = json_array.getDouble(2);       //hard coded form of data input from the JSON 3rd column
 		      	     }    
 		          for(int i=0; i < 51; i++)
 		            { ys[i] = i;
