@@ -53,8 +53,11 @@ public class ParticleFilteringActivity extends Activity {
 		super.onCreate(savedInstanceState);		
 		setContentView(R.layout.activity_particle_filtering);
 		Intent mintent = getIntent();
-		String file_id = (String) mintent.getStringExtra(InputActivity.EXTRA_MESSAGE);		
-		this.mDeadReckoning = new ParticleFiltering(this,file_id);
+		String file_id = (String) mintent.getStringExtra(InputActivity.EXTRA_MESSAGE);
+		int  fi = Integer.valueOf(file_id);
+		System.out.print(fi);
+		System.out.println("PFA");
+		this.mDeadReckoning = new ParticleFiltering(this,fi);
 		intent = new Intent(this, BroadcastService.class);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 	}

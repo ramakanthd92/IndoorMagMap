@@ -10,7 +10,7 @@ import android.view.View;
 import android.widget.EditText;
 
 public class InputActivity extends Activity {
-	public final static String EXTRA_MESSAGE = "in.ernet.iitr.puttauec.ui.MESSAGE";
+	public final static String EXTRA_MESSAGE = "in.ernet.iitr.puttauec.ui.InputActivity.MESSAGE";
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +29,8 @@ public class InputActivity extends Activity {
 		Intent intent = new Intent(this, ParticleFilteringActivity.class);
 		EditText editText1 = (EditText) findViewById(R.id.file_name);
 		String file = editText1.getText().toString();
+		System.out.print(file);
+		System.out.println("IA");
 		intent.putExtra(EXTRA_MESSAGE, file);
 		startActivity(intent);
 	}

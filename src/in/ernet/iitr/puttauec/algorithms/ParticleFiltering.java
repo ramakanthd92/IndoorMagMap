@@ -17,10 +17,10 @@ import android.util.Log;
 
 public class ParticleFiltering extends DeadReckoning {
 	   private static final Random rand = RandomSingleton.instance;
-	   static double				minX  = 0.0  ;  //Double.MAX_VALUE; 
-	   static double				maxX  = 3.0 ;   //-Double.MAX_VALUE;
-	   static double				minY  = 0.0 ;   //Double.MAX_VALUE;
-	   static double				maxY  = 50.0 ;  //-Double.MAX_VALUE;
+	   private static double				minX  = 0.0  ;  //Double.MAX_VALUE; 
+	   private static double				maxX  = 3.0 ;   //-Double.MAX_VALUE;
+	   private static double				minY  = 0.0 ;   //Double.MAX_VALUE;
+	   private static double				maxY  = 50.0 ;  //-Double.MAX_VALUE;
 	   private static double  measurement  = 0.0;
 	   private static final String TAG = "ParticleFilterReckoning";
 	   
@@ -50,20 +50,52 @@ public class ParticleFiltering extends DeadReckoning {
 	   private FileWriter mMMSEDistanceFileWriter;
 	   
 	   //@Override
-		public ParticleFiltering(Context ctx,String file) {
+		public ParticleFiltering(Context ctx, int file) {
 			super(ctx);                                                  //TODO: Incorporate the Barcode Scanner to identify the path way. 
-			if(file == "0") 
-			  { magneticmap.N = 4;}
-			else if(file == "1" || file == "2")
-			  { magneticmap.N= 3;
-				maxX = 2.0;
+			synchronized(this)
+			{String file_name = new String();
+			 int Nval = 0;
+			 System.out.print(maxX);
+			 System.out.print(file);
+			 System.out.println("PF");
+			 switch(file)
+			 {case 0: 
+			  { setmaxX(3.0);
+			    Nval =4;
+			    file_name = new String("w0.json");
+			    System.out.print("0");
+			    break;
+			  }
+			 case 1: 
+			  { setmaxX(2.0);
+			    Nval =3;
+			    file_name = new String("w1.json");
+			    System.out.print("1");
+			    break;
 			  } 
-			else
-			  {file = "0";}
-			String filename = "w"+ file +".json";
-		    String json_obj =loadJSONFromAsset(ctx,filename);
-			magneticmap = new MapGenerator(json_obj);	
-			
+			 case 2:
+			   { setmaxX(2.0);
+			     Nval =3;
+		         file_name = new String("w2.json");
+		         System.out.print("2");
+		         break;
+		       }
+			 case 3:
+			  { Nval =10;
+				file_name = new String("w012.json");
+			    System.out.print("Got it Here");
+			    setmaxX(15.0);
+			    System.out.print("0-1-2");
+			    break;
+			  }
+			 default:
+			  { file_name = "w0.json";
+			    System.out.print("none");}
+			}
+			System.out.print(maxX);
+		    String json_obj =loadJSONFromAsset(ctx,file_name);
+			magneticmap = new MapGenerator(json_obj, Nval);	
+			}
 		}
 		
 		public static String loadJSONFromAsset(Context context,String filename) {
@@ -178,10 +210,17 @@ public class ParticleFiltering extends DeadReckoning {
 		 
 		 public void SensorErrorModel(double Magnetic_Measurement)
 		 {     importance_weight = 1.0;
+		       /*System.out.println(maxX);*/
+		       
 		       if ((x > minX && x < maxX) && (y > minY && y < maxY))
 		       {  double position_magnitude = magneticmap.f.value(x,y);	
-		          System.out.print(position_magnitude);
-		          importance_weight *= Gaussian(position_magnitude,msenseNoise,Magnetic_Measurement);
+		       /*   System.out.print("x =");
+		          System.out.print(x);
+		          System.out.print(",  y =");
+		          System.out.print(y);
+		          System.out.print(",  mag =");
+		          System.out.println(position_magnitude);
+		         */ importance_weight *= Gaussian(position_magnitude,msenseNoise,Magnetic_Measurement);
 		       }  
 		       else 
 		       { importance_weight = 0.005;		    	   
@@ -408,7 +447,11 @@ public class ParticleFiltering extends DeadReckoning {
 				this.weightSums[i] /= total;
 			}
 		}
-        
+		public void setmaxX(double mx) {
+		    maxX = mx;
+		}
+			
+			
 		@Override
 		public void startLogging() {
 			
