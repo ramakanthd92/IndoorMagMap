@@ -34,8 +34,8 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	private static final int VALLEY_HUNT = 1;
 
 	// These constants are expected to be divided by 1000 before use
-	public static int DEFAULT_TRAINING_CONSTANT = 1490; // 5200; // 3300; // 1937;
-	public static int DEFAULT_ACCEL_THRESHOLD = 1200; // 1840; //1300 /1400 //1500 
+	public static int DEFAULT_TRAINING_CONSTANT = 1540; // 5200; // 3300; // 1937;
+	public static int DEFAULT_ACCEL_THRESHOLD = 1300; // 1840; //1300 /1400 //1500 
 	
 	// Instance variables
 	LinkedList<float[]> mAccelHistory;

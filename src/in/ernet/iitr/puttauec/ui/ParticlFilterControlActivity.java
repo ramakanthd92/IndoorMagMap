@@ -15,13 +15,18 @@ public class ParticlFilterControlActivity extends Activity {
 	public static final String KEY_PARTICLE_COUNT_VALUE = "ParticleCountValue";
 	public static final String KEY_STEP_NOISE_VALUE = "StepNoiseValue";
 	public static final String KEY_SENSE_NOISE_VALUE = "SenseNoiseValue";
+	public static final String KEY_TURN_NOISE_VALUE = "TurnNoiseValue";
 	
+
 	private SeekBar mParticleCountSlider;
 	private TextView  mParticleCountValue;
 	private SeekBar mStepNoiseSlider;
 	private SeekBar mSenseNoiseSlider;
 	private TextView  mStepNoiseValue;
 	private TextView  mSenseNoiseValue;
+	private SeekBar mTurnNoiseSlider;
+	private TextView  mTurnNoiseValue;
+	
 	private Intent mReturnValue;
 
 	@Override
@@ -83,6 +88,7 @@ public class ParticlFilterControlActivity extends Activity {
 				setResult(RESULT_OK, mReturnValue);
 			}
 		});
+      
       mStepNoiseSlider.setProgress(Math.round(1000*getIntent().getFloatExtra(KEY_STEP_NOISE_VALUE, ParticleFiltering.DEFAULT_STEP_NOISE_THRESHOLD/1000.f)));
 	
       mSenseNoiseSlider = (SeekBar) findViewById(R.id.sense_noise_slider);
@@ -110,6 +116,33 @@ public class ParticlFilterControlActivity extends Activity {
 			}
 		});
       mSenseNoiseSlider.setProgress(Math.round(1000*getIntent().getFloatExtra(KEY_SENSE_NOISE_VALUE, ParticleFiltering.DEFAULT_SENSE_NOISE_THRESHOLD/1000.f)));
+      
+    
+      mTurnNoiseSlider = (SeekBar) findViewById(R.id.turn_noise_slider);
+      mTurnNoiseValue = (TextView) findViewById(R.id.turn_noise_value);
+      mTurnNoiseSlider.setOnSeekBarChangeListener(
+    		  new SeekBar.OnSeekBarChangeListener() {
+			
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar) {
+				return;
+			}
+			
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {
+				return;
+			}
+			
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress,
+					boolean fromUser) {
+				Log.i(TAG, "New Turn Noise Value: " + (progress/1000.f));
+				mTurnNoiseValue.setText("" + progress/1000.f);
+				mReturnValue.putExtra( KEY_TURN_NOISE_VALUE, progress/1000.f);
+				setResult(RESULT_OK, mReturnValue);
+			}
+		});
+      mTurnNoiseSlider.setProgress(Math.round(1000*getIntent().getFloatExtra(KEY_TURN_NOISE_VALUE, ParticleFiltering.DEFAULT_TURN_NOISE_THRESHOLD/1000.f)));
 	}
 }
 	

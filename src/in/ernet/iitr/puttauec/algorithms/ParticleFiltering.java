@@ -24,20 +24,23 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static double  maxY  = 50.0 ;  //-Double.MAX_VALUE;
 	   private static double  measurement  = 0.0;
 	   private static final String TAG = "ParticleFilterReckoning";
+	   private static double mul =(180/Math.PI);
 	   
 	   public static int DEFAULT_PARTICLE_COUNT = 700; //1000 //2000
 	   public static int DEFAULT_STEP_NOISE_THRESHOLD = 700; // 400  //600 //800 //1000 //1500 
 	   public static int DEFAULT_SENSE_NOISE_THRESHOLD = 5000; //2000 //10000  //15000
-			 
+	   public static int DEFAULT_TURN_NOISE_THRESHOLD = 300; //2000 //10000  //15000
+		 
+	      
        protected MapGenerator magneticmap ; 
 	   protected Particle[] particles ;
 	   protected Particle[] sortedParticles;
 	   protected double[] weightSums ;
 		
 	   private static int particleCount = DEFAULT_PARTICLE_COUNT;       
-	   private static double msenseNoise = DEFAULT_STEP_NOISE_THRESHOLD/1000.f;       
-	   private static double mstepNoise = DEFAULT_SENSE_NOISE_THRESHOLD/1000.f;        
-	   private static double mturnNoise = 0.50;	  
+	   private static double msenseNoise = DEFAULT_SENSE_NOISE_THRESHOLD/1000.f;       
+	   private static double mstepNoise = DEFAULT_STEP_NOISE_THRESHOLD/1000.f;        
+	   private static double mturnNoise = DEFAULT_TURN_NOISE_THRESHOLD/1000.f;	  
 	   
 	   private static final double INIT_SD_X = 1.0;
 	   private static final double INIT_SD_Y = 1.0;
@@ -488,32 +491,41 @@ public class ParticleFiltering extends DeadReckoning {
 				particles[i].y = mStartY + (float)(INIT_SD_Y*rand.nextGaussian());
 			}
 		}			
-		public int getParticleCount () {
-		   return particleCount;
+		public float getParticleCount () {
+		   return ((float)particleCount);
 		}
 	    
-		public double getSenseNoise () {
-			return msenseNoise;
+		public float getSenseNoise () {
+			return ((float)msenseNoise);
 		}
 		
-		public double getStepNoise () {
-			return  mstepNoise;
+		public float getStepNoise () {
+			return ((float)mstepNoise);
+		}
+		
+		public float getTurnNoise () {
+			return ((float)(mul*mturnNoise));
+			
 		}
 		
 		public double getMMSE() {
 			return  mmse;
 		}
 		
-		public void setParticleCount (double pc) {
+		public void setParticleCount (float pc) {
 			   particleCount = (int) pc;
 			}
 		    
-			public void setSenseNoise (double sen) {
-				 msenseNoise = sen;
+			public void setSenseNoise (float sen) {
+				 msenseNoise = (double)sen;
 			}
 			
-			public void setStepNoise (double ste) {
-				mstepNoise = ste;
+			public void setStepNoise (float ste) {
+				mstepNoise = (double)ste;
+			}
+			
+			public void setTurnNoise (float tun) {
+				mturnNoise = (double)(tun/mul);
 			}
 	
 	private static final Comparator mapFitness = new Comparator() {

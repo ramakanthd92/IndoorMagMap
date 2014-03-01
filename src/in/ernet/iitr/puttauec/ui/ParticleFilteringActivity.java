@@ -133,6 +133,7 @@ public class ParticleFilteringActivity extends Activity {
 			pfIntent.putExtra(ParticlFilterControlActivity.KEY_PARTICLE_COUNT_VALUE, mDeadReckoning.getParticleCount());
 			pfIntent.putExtra(ParticlFilterControlActivity.KEY_STEP_NOISE_VALUE, mDeadReckoning.getStepNoise());
 			pfIntent.putExtra(ParticlFilterControlActivity.KEY_SENSE_NOISE_VALUE, mDeadReckoning.getSenseNoise());
+			pfIntent.putExtra(ParticlFilterControlActivity.KEY_TURN_NOISE_VALUE, mDeadReckoning.getTurnNoise());
 			startActivityForResult(pfIntent , PARFIL_RECKONING_TRAINING_CONSTANT);
 			break;
 		case PARFIL_RECKONING_RESTART:
@@ -222,7 +223,8 @@ public class ParticleFilteringActivity extends Activity {
 						// using sliders.
 						mDeadReckoning.setParticleCount(data.getFloatExtra(ParticlFilterControlActivity.KEY_PARTICLE_COUNT_VALUE,ParticleFiltering.DEFAULT_PARTICLE_COUNT));
 						mDeadReckoning.setStepNoise(data.getFloatExtra(ParticlFilterControlActivity.KEY_STEP_NOISE_VALUE, ParticleFiltering.DEFAULT_STEP_NOISE_THRESHOLD/1000.f));
-						mDeadReckoning.setSenseNoise(data.getFloatExtra(ParticlFilterControlActivity.KEY_SENSE_NOISE_VALUE, ParticleFiltering.DEFAULT_SENSE_NOISE_THRESHOLD/1000.f ));					
+						mDeadReckoning.setSenseNoise(data.getFloatExtra(ParticlFilterControlActivity.KEY_SENSE_NOISE_VALUE, ParticleFiltering.DEFAULT_SENSE_NOISE_THRESHOLD/1000.f ));
+						mDeadReckoning.setTurnNoise(data.getFloatExtra(ParticlFilterControlActivity.KEY_TURN_NOISE_VALUE, ParticleFiltering.DEFAULT_TURN_NOISE_THRESHOLD/1000.f ));
 						break;
 					default:
 						throw new RuntimeException("Unexpected Activity Return value!");
