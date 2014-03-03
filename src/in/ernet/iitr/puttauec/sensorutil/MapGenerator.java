@@ -5,6 +5,7 @@ import org.apache.commons.math3.analysis.interpolation.BicubicSplineInterpolator
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+<<<<<<< HEAD
 
 public class MapGenerator implements Runnable{
 	public int N = 4;                     // No. of measurement pathways in the Magnetic field  Experiment Setup.
@@ -34,6 +35,46 @@ public class MapGenerator implements Runnable{
 		         JSONArray nameArray = myjson.names();
 		         len = nameArray.length();
 		         for(int i = 0; i < len; i++)
+=======
+
+import android.os.AsyncTask;
+
+public class MapGenerator {
+	public int N = 4;
+	public double [][] magnitudesx,magnitudesy,magnitudesz;
+	public double [] xs;
+	public double [] ys = new double[51];
+	public static BicubicSplineInterpolatingFunction fx,fy,fz; 
+	public SmoothingPolynomialBicubicSplineInterpolator iterpolator = new SmoothingPolynomialBicubicSplineInterpolator();
+	private String name;
+    private int j,k,len;
+ 	    	
+	public MapGenerator(String json_obj, int Nval)
+	{    N = Nval;
+	     magnitudesx = new double[N][51];
+         magnitudesy = new double[N][51];
+	     magnitudesz = new double[N][51];
+	     xs = new double[N];
+	     parseProfilesJson(json_obj);		    
+	     fx = iterpolator.interpolate(xs, ys, magnitudesx);
+         fy = iterpolator.interpolate(xs, ys, magnitudesy);
+      	 fz = iterpolator.interpolate(xs, ys, magnitudesz);	    
+      	 for(double i = 0.0; i < 15.0; i++)
+      	 {for(double j = 0.0; j < 50.0; j++)
+      	 	{ System.out.print(fz.value(i,j));
+      	 	  System.out.print(" ");
+      	 	}
+      	     System.out.println("");
+      	 }
+	}	
+	
+	public void parseProfilesJson (String the_json) {
+		 try {
+		         JSONObject myjson   = new JSONObject(the_json);
+		         JSONArray nameArray = myjson.names();
+		         len = nameArray.length();
+		         for(int i=0; i < len; i++)
+>>>>>>> e6b5b8d6170e3d8c4fac755f4b9e4df97fa7f921
 		            {  name = nameArray.getString(i);
 		        	   JSONArray json_array  = myjson.getJSONArray(name);
 		        	   j = (Integer.valueOf(name)-1) / 51;
@@ -44,7 +85,13 @@ public class MapGenerator implements Runnable{
 		        	   else if(j >= 12 && j <=15)
 		        	   		{ j -= 6;		        		   
 		        	   		}
+<<<<<<< HEAD
 		              magnitudes[j][k] = json_array.getDouble(a);
+=======
+		              magnitudesz[j][k] = json_array.getDouble(2);
+		              magnitudesy[j][k] = json_array.getDouble(1);
+		              magnitudesx[j][k] = json_array.getDouble(0);		              
+>>>>>>> e6b5b8d6170e3d8c4fac755f4b9e4df97fa7f921
 		            //hard coded form of data input from the JSON 3rd column
 		      	     }    
 		          for(int i = 0; i < 51; i++)
@@ -56,14 +103,21 @@ public class MapGenerator implements Runnable{
 		      	           } 
 		            }
 		          else
+<<<<<<< HEAD
 		            {   xs[0] = 0;  xs[1] =1; xs[2]=2;
 		          	    xs[3] = 6;  xs[4] =7; xs[5]=8;
 		                xs[6] = 12; xs[7]=13; xs[8]=14; xs[9]=15;
+=======
+		            {   xs[0] = 0; xs[1] =1; xs[2]=2;
+		          	    xs[3] = 6; xs[4] =7; xs[5]=8;
+		                xs[6] = 12; xs[7] =13; xs[8]=14; xs[9]=15;
+>>>>>>> e6b5b8d6170e3d8c4fac755f4b9e4df97fa7f921
 		            }
 		       } catch (JSONException e) {
 		                e.printStackTrace();
 		       }		      
 		   }
+<<<<<<< HEAD
 	
 	/**  Generate Interpolation Function for the instance which will be used in the particle filter for estimating the particles 
 	 *  Magnetic field at some location (x,y) 
@@ -76,6 +130,8 @@ public class MapGenerator implements Runnable{
     	 f = interpolator.interpolate(xs, ys, magnitudes);
     	 magnitudes = null;  
 	}
+=======
+>>>>>>> e6b5b8d6170e3d8c4fac755f4b9e4df97fa7f921
 }
 	
 		  		
