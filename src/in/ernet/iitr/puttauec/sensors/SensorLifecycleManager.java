@@ -53,10 +53,9 @@ public class SensorLifecycleManager {
 		mSensorManager.registerListener(mSensorEventListener, mSensorManager
 				.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
 				SENSOR_DELAY);
-	/*	mSensorManager.registerListener(mSensorEventListener,
+	  /*mSensorManager.registerListener(mSensorEventListener,
 				mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
-				SENSOR_DELAY);  
-				
+				SENSOR_DELAY);  				
    		mSensorManager.registerListener(mSensorEventListener,
 				mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
 			SENSOR_DELAY); */	
@@ -143,9 +142,7 @@ public class SensorLifecycleManager {
 		return SensorManager.getOrientation(getRotationMatrix(), values);
 	}
 	
-	
-	public float[] getRotationVector() {
-		float[] values = new float[3];
+	public float[] getRotationVector() {		
 		return mSensorEventListener.getRotationVector();
 	}
 }
