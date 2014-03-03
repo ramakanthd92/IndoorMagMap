@@ -21,21 +21,18 @@ import android.text.format.DateFormat;
 import android.util.Log;
 
 public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm, IReckoningMethod {
+	// Constants
 	protected static final String SAMPLES_DIR = Environment.getExternalStorageDirectory() + File.separator + "samples";
 	private static final int DEFAULT_MAP_HEIGHT = 480;
 	private static final int DEFAULT_MAP_WIDTH = 640;
-
-	// Constants
 	private static final int MAX_HISTORY_SIZE = 10;
-
 	private static final String TAG = "DeadReckoning";
-
 	private static final int PEAK_HUNT = 0;
 	private static final int VALLEY_HUNT = 1;
 
 	// These constants are expected to be divided by 1000 before use
-	public static int DEFAULT_TRAINING_CONSTANT = 1540; // 5200; // 3300; // 1937;
-	public static int DEFAULT_ACCEL_THRESHOLD = 1300; // 1840; //1300 /1400 //1500 
+	public static final int DEFAULT_TRAINING_CONSTANT = 1540; // 5200; // 3300; // 1937;
+	public static final int DEFAULT_ACCEL_THRESHOLD = 1300; // 1840; //1300 /1400 //1500 
 	
 	// Instance variables
 	LinkedList<float[]> mAccelHistory;
@@ -48,9 +45,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	private int mMapHeight = DEFAULT_MAP_HEIGHT;
 	
 	// Raw path obtained by Dead Reckoning
-	private ArrayList<float[]> mPath;
-
-	
+	private ArrayList<float[]> mPath;	
 	private int mStepCount;
 	private float mMinAccel;
 	private float mMaxAccel;
@@ -58,36 +53,29 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	private long prevSteptimestamp;
 	
 	// Reference to the Sensor Lifecycle Manager used to get the sensor data
-	private SensorLifecycleManager mSensorLifecycleManager;
+	protected SensorLifecycleManager mSensorLifecycleManager;
 
-	private double mRoughAngle;
 	protected boolean mIsLogging;
 	protected FileWriter mAccelLogFileWriter;
 	protected FileWriter mStepLogFileWriter;
 
 	public DeadReckoning(Context ctx) {
-		//System.out.print("  d  ");  
 		init();		
 		mSensorLifecycleManager = SensorLifecycleManager.getInstance(ctx);
 	}
 
-	protected void init() {
-		//System.out.print("  di ");  
+	protected void init() {  
 		mAccelHistory = new LinkedList<float[]>();
 		mAccelHistory.add(new float[3]); // Added to avoid bounds checks while accessing
-		mAccelHistory.add(new float[3]); // indices [i-1] and [i-2]
-		
-		mPath = new ArrayList<float[]>();
-		
+		mAccelHistory.add(new float[3]); // indices [i-1] and [i-2]		
+		mPath = new ArrayList<float[]>();		
 		mLocation = new float[2];
 		mStepCount = 0;
 		mMaxAccel = 0.f;
-		mMinAccel = 0.f;
-		mRoughAngle = 0.f;
+		mMinAccel = 0.f;		
 		mStartX = 0.f;
 		mStartY = 0.f;
-		mState = VALLEY_HUNT; // Used for detection of peaks and valleys from the accelerometer data.
-		
+		mState = VALLEY_HUNT; // Used for detection of peaks and valleys from the accelerometer data.		
 		mIsLogging = false;
 	}
 	
@@ -141,6 +129,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 						// TODO Remove this offset!
 						double offset = Math.toRadians(85); // 85 degree offset because of map
 						radAngle += offset;
+						
 						if(radAngle < -Math.PI)
 							radAngle += 2*Math.PI;
 						
@@ -196,7 +185,6 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	public void onMagneticFieldUpdate(float[] values, long deltaT,
 			long timestamp) {
 		super.onMagneticFieldUpdate(values, deltaT, timestamp);
-		mRoughAngle = Math.atan2(-values[0], values[1]);
 	}
 
 	/* (non-Javadoc)
@@ -473,7 +461,6 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 					pathArray.put(pathPoint);
 				}
 				String pathString = pathArray.toString();
-				// Log.i(TAG, "Current path: " + pathString);
 				return pathString;
 			} catch(JSONException e) {
 				Log.e(TAG, "Error serializing path to JSON.", e);
