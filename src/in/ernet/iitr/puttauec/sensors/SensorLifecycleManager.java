@@ -2,9 +2,9 @@ package in.ernet.iitr.puttauec.sensors;
 
 import in.ernet.iitr.puttauec.sensors.internal.HWSensorEventListener;
 import android.content.Context;
-import android.content.IntentFilter;
+//import android.content.IntentFilter;
 import android.hardware.Sensor;
-import android.hardware.SensorEvent;
+//import android.hardware.SensorEvent;
 import android.hardware.SensorManager;
 
 

@@ -10,15 +10,18 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.apache.commons.math3.analysis.interpolation.BicubicSplineInterpolatingFunction;
+
 import android.content.Context;
+//import android.os.Handler;
 import android.text.format.DateFormat;
 import android.util.Log;
 import Jama.*; 
 
 public class ParticleFiltering extends DeadReckoning {
 	   //constants
-	   private static final String TAG = "ParticleFilterReckoning";
-	   public static final int DEFAULT_PARTICLE_COUNT = 100; //1000 //2000
+	   private static final String TAG = "PaicleFilterReckoning";
+	   public static final int DEFAULT_PARTICLE_COUNT = 200; //1000 //2000
 	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 700; // 400  //600 //800 //1000 //1500 
 	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 5000; //2000 //10000  //15000
 	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 300; //2000 //10000  //15000
@@ -29,31 +32,38 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static final double  minY  = 0.0 ;  
 	   private static final double  maxY  = 50.0 ; 
 	   private static final double mul =(180/Math.PI);
-	   private static final double cons = Math.pow(2.0*Math.PI,1.5);
+	   //private static final double cons = Math.pow(2.0*Math.PI,1.5);
+	   private static final double prb = Math.pow(10.0, -30);			// The constant probability for the particles going away from the measured map
+	   private static final double kin = Math.pow(10.0, 10);             // The multiplier to account for too much less probability for the particles prediction.
 	   
+	   
+	   public BicubicSplineInterpolatingFunction fz; 
 	   
 	   //Instance variables
 	   private static final Random rand = RandomSingleton.instance;
-	   private double[]  measurement  = {0.0,0.0,0.0};
-	   private double[][] R = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};	   
-	   private double [] mTrueMeasurement = {0.0,0.0,0.0};
-	   private float[] mRV = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
-	   private double[] position  = {0.0,0.0,0.0};
-	   protected MapGenerator magneticmap ; 
-	   protected Particle[] particles ;
-	   protected double[] weightSums ;		
+	   private double[]  measurement  = {0.0,0.0,0.0};					// Magnetic field in Device Co-ordinate system
+	   private double[][] R = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};	      // Co-variance Matrix for Vector Gaussian
+	   private double [] mTrueMeasurement = {0.0,0.0,0.0};					// Magnetic field in Global co-ordinate system
+	   private float[] mRV = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};	// Rotation Vector for local Rotation method used during each update location call.  
+	   private double[] position  = {0.0,0.0,0.0};						// Magnetic field vector at any position (x,y) of the particles estimated from Interpolation function.
+	   protected MapGenerator magneticmapx,magneticmapy,magneticmapz;    // magnetic field map instances for x,y,z axes readings
+	   protected Particle[] particles ;									   // particles
+	   protected double[] weightSums ;									// CDF of importance weights
+	   private double magnitude;										 // magnitude to be written to Magnetic field log.
 	   
 	   //Control parameters 
 	   private static int particleCount = DEFAULT_PARTICLE_COUNT;       
-	   private static double msenseNoise = DEFAULT_SENSE_NOISE_THRESHOLD/1000.f;       
-	   private static double mstepNoise = DEFAULT_STEP_NOISE_THRESHOLD/1000.f;        
-	   private static double mturnNoise = DEFAULT_TURN_NOISE_THRESHOLD/1000.f;	  
-	   private static double mmse = 0.0;
-	   
+	   private static double msenseNoise = DEFAULT_SENSE_NOISE_THRESHOLD/1000.f;    // Step Noise for the particles used in dynamical equation.  Reduce this to a mimimum to reduce error in path length.  
+	   private static double mstepNoise = DEFAULT_STEP_NOISE_THRESHOLD/1000.f;      // Sense noise used in Co-variance matrix of Vector Gaussian
+	   private static double mturnNoise = DEFAULT_TURN_NOISE_THRESHOLD/1000.f;	    // Turn noise for particles used in dynamical equations
+	   private static double mmse = 0.0;                                            // MMSE of the particles at each update location step from estimated position.
+
+	   //log file writers
 	   private FileWriter mNoiseFileWriter;
 	   private FileWriter mMagLogFileWriter;
 	   private FileWriter mMMSEDistanceFileWriter;
        
+	   //some variables
 	   private static int len = 0;
        private static double sel = 0.0;
        private static int index = 0;
@@ -68,6 +78,9 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static double xp = 0.0;
 	   private static double yp = 0.0;
 	    
+	   // An object that manages Messages in a Thread
+	   //  private Handler mHandler;
+	   
   public class Pose
   { 	public double x;
     	public double y;
@@ -116,36 +129,52 @@ public class ParticleFiltering extends DeadReckoning {
     	public void SensorErrorModel(double[] Magnetic_Measurement)
     		{   importance_weight = 1.0;		      
     			if ((x > minX && x < maxX) && (y > minY && y < maxY))
-    				{   position[0] = magneticmap.fx.value(x,y);
-    					position[1] = magneticmap.fy.value(x,y);
-    					position[2] = magneticmap.fz.value(x,y);
+    				{
+    				    position[0] = magneticmapx.f.value(x,y);		// X-axis magnetic field of a particle look up from interpolation function. 
+    					position[1] = magneticmapy.f.value(x,y);		// Y-axis magnetic field.
+    					position[2] = magneticmapz.f.value(x,y);		// Z-axis magnetic field.
     					
-    					Log.e(TAG,String.valueOf(position[0]));
-    					Log.e(TAG,String.valueOf(position[1]));
-    					Log.e(TAG,String.valueOf(position[2]));
-    					//	importance_weight *= Gaussian(px,msenseNoise,Magnetic_Measurement[0])*Gaussian(py,msenseNoise,Magnetic_Measurement[1])*
-    					importance_weight =  Gaussian(position[2],msenseNoise, Magnetic_Measurement[2]);
+    				//	Log.e(TAG,String.valueOf(position[0]));
+    				//	Log.e(TAG,String.valueOf(position[1]));
+    			    //	Log.e(TAG,String.valueOf(position[2]));
+    			    	
+    					//importance_weight *= Gaussian(position[0],msenseNoise,Magnetic_Measurement[0])*Gaussian(position[1],msenseNoise,Magnetic_Measurement[1])*Gaussian(position[2],msenseNoise, Magnetic_Measurement[2]);
+    			    	importance_weight *= kin*VectorGaussian(position, msenseNoise, Magnetic_Measurement);       //Importance weight of the particle after measurement.
     				}  
     			else 
-    				{ 	importance_weight = 0.002;		    	   
+    				{ 	importance_weight = prb;		    	   
     				}
     		}  
     	public void normalizeImportanceWeight(double sum)
     		{   if (sum == 0) {
     		    			throw new IllegalArgumentException("Argument 'divisor' is 0");
     				}
-    			 importance_weight /= sum;
-    
+    			 importance_weight /= sum;    
     		}
   	}
-   
+   /**
+    * Constructor for particle filtering class. 
+    * Generates the magnetic field maps x,y,z axes using separate threads.
+    * 
+    * @param ctx
+    */  
 		public ParticleFiltering(Context ctx) {
 			super(ctx);   
 			//TODO: Incorporate the Barcode Scanner to identify the path way.
-			System.out.println("PF");
-		    String json_obj =loadJSONFromAsset(ctx,"w012.json");
-			magneticmap = new MapGenerator(json_obj, 10);	
-		 }
+		    String json_obj = loadJSONFromAsset(ctx,"w012.json");
+			magneticmapx = new MapGenerator(json_obj, 10,0);	
+			magneticmapy = new MapGenerator(json_obj, 10,1);	
+			magneticmapz = new MapGenerator(json_obj, 10,2);	
+	        magneticmapx.run();
+	        magneticmapy.run();
+	        magneticmapz.run();
+		}
+		/**
+		 * Loads the magnetic field readings from the JSON file in assets to the string object.		 * 
+		 * @param context
+		 * @param filename     the asset JSON file that has the raw magnetic field readings. (x,y,z,magnitude) 
+		 * @return             JSON string object 
+		 */
 		
 		public String loadJSONFromAsset(Context context,String filename) {
 	        String json = null;
@@ -162,11 +191,31 @@ public class ParticleFiltering extends DeadReckoning {
 	        return json;
 	    }
 	   
+		/**
+		 *  Gaussian Function for |m| that gives the probability of the particle magnetic magnitude (mu) and respective magnetic field observation.(Z)
+		 *                _
+		 *            |  /|\              Gaussian probability using the measurement and particle magnetic field.
+		 *          __|_/ | \_|__
+		 * -----------|---|---|--------
+		 *               mu   Z
+		 * @param mu             particle magnetic field estimate
+		 * @param sigma          sense noise
+		 * @param x              measurement 
+		 * @return               importance weight
+		 */
 	   public double Gaussian(double mu,double sigma,double x)
 	   {    double sigma_2 = Math.pow(sigma, 2.0);
 		    double mu_x_2 = Math.pow((mu-x),2.0); 		
 	        return Math.exp(-(mu_x_2 / (sigma_2*2.0))) / Math.sqrt(2.0 * Math.PI * sigma_2) ;
 	   }
+	   
+	   /**
+	    * Vector Gaussian form for using with 'm' vector using the particle magnetic field along all 3-axes
+	    * @param mu        particle magnetic field along 3 -axes. 
+	    * @param sigma     sense noise for co-variance
+	    * @param x         magnetic measurement vector
+	    * @return          importance weight.
+	    */
 	   
 	   public double VectorGaussian(double[] mu,double sigma,double[] x)
 	   {    double sigma_2 = Math.pow(sigma, 2.0);
@@ -179,26 +228,34 @@ public class ParticleFiltering extends DeadReckoning {
 	        double Z_ARR[][] = {{x[0],x[1],x[2]}};
 	        Matrix MU = new Matrix(MU_ARR);
 	        Matrix Z = new Matrix(Z_ARR);
-	        double Rnorm = RM.det();
+	      //double Rnorm = RM.det();
 	        Matrix Z_MU = Z.minus(MU); 
+	   
+	      //Log.e(TAG,"posi[0] = " + String.valueOf(MU_ARR[0][0]) + "posi[1] = " + String.valueOf(MU_ARR[0][1]) + "posi[2] = " + String.valueOf(MU_ARR[0][2]));
+	      //Log.e(TAG,"meas[0] = " + String.valueOf(Z_ARR[0][0]) + "meas[1] = " + String.valueOf(Z_ARR[0][1]) + "meas[2] = " + String.valueOf(Z_ARR[0][2])); 
+	      //Log.e(TAG,"Z_MU[0] = " + String.valueOf(Z_ARR[0][0] - MU_ARR[0][0])+"Z_MU[1] = " + String.valueOf(Z_ARR[0][1] - MU_ARR[0][1]) + "Z_MU[2] = " + String.valueOf(Z_ARR[0][2] - MU_ARR[0][2]));
+            
             Matrix exp_term = Z_MU.times(Rinv);
-            Matrix exp_term_2  = exp_term.times(Z_MU.transpose());            
-	        return Math.exp(- 0.5 * exp_term_2.det()) / (Math.sqrt(Rnorm)*cons)  ;
+            Matrix exp_term_2  = exp_term.times(Z_MU.transpose());   
+          //  Log.e(TAG,"Rnorm = " + String.valueOf(Rnorm));
+           // Log.e(TAG,"exp_term_2 = " + String.valueOf(exp_term_2.det()));
+              
+	        return Math.exp(- 0.5 * exp_term_2.det()) ; // (Math.sqrt(Rnorm)*cons)  ;
 	   }
 	  
+	   /**  init for the particle filter. Initialising the particles and weights CDF
+	    *   Normalise the weights. Log the noise parameters.	     
+	    */
 	   @Override
 	   protected void init() {
 	        super.init();
 			this.particles = new Particle[particleCount];
 			this.weightSums = new double[particleCount + 1];
 		    len = particleCount;
-		    System.out.println(len);
-		    System.out.println(particleCount);
 		    
 			for (int i = 0 ; i < len ; i++) {
 				particles[i] = new Particle();
 			}
-			System.out.println(particles.length);
 			normalizeWeights();
 			try {
 					String r = (String) (DateFormat.format("yyyy-MM-dd-hh-mm-ss", new java.util.Date()) );
@@ -217,13 +274,13 @@ public class ParticleFiltering extends DeadReckoning {
 		@Override
 		public void onMagneticFieldUpdate(float[] values, long deltaT, long timestamp) {
 			super.onMagneticFieldUpdate(values, deltaT, timestamp);
-			//this.measurement = Math.sqrt(values[0]*values[0] + values[1]*values[1] + values[2]*values[2]);
+			this.magnitude= Math.sqrt(values[0]*values[0] + values[1]*values[1] + values[2]*values[2]);
 			this.measurement[0] = values[0];
 			this.measurement[1] = values[1];
 			this.measurement[2] = values[2];
 			if(this.isLogging()) {
 				try {
-					mMagLogFileWriter.write("" + timestamp + "," + deltaT + "," + values[0] + ","+ values[1] +","+ values[2] + "," + measurement + "\n");
+					mMagLogFileWriter.write("" + timestamp + "," + deltaT + "," + values[0] + ","+ values[1] +","+ values[2] + "," + this.magnitude + "\n");
 				} catch (IOException e) {
 					Log.e(TAG, "Log file write for Magnetic Field failed!!!\n", e);
 					e.printStackTrace();
@@ -231,24 +288,29 @@ public class ParticleFiltering extends DeadReckoning {
 				}
 			}
 		}
-
+		
+		/** The update location that updates the particles motion and importance weights from measurements. 
+		 *  Resamples all important particles. Predicts the current Location using the mean of the particle density. 
+		 */
 		@Override
 		public void updateLocation(double step_size, double rad_angle) {
 			System.out.println("update");
 			Particle[] next = new Particle[particles.length];
 			len = particles.length;
+			
+			mRV = mSensorLifecycleManager.getRotationMatrix();						
+			updateTrueMag();
+			
 			for (int i = 0 ; i< len; i++) {
 				 next[i] = selectParticleAndCopy();
-				/* action.selectActionHypothesis(rand);
+				/*action.selectActionHypothesis(rand);
 				 TODO: should combine the prevAction and the supplied action (and maybe include the association action)
-                 ActionModel averageAction = prevAction.average(action);
-                */   				
-				next[i].move(step_size,rad_angle);                                                // TODO: Should order move and sense			
-				//mRV = mSensorLifecycleManager.getRotationMatrix();				
-				//updateTrueMag();
+                 ActionModel averageAction = prevAction.average(action);*/   				
+				next[i].move(step_size,rad_angle);                        // TODO: Should order move and sense			
 				next[i].SensorErrorModel(mTrueMeasurement);
 			    //next[i].updateMap( nextPose, observations, sensorImageGen, dt, sensorErrorModel, processError, // assoc,//useKnownDataAssociations,lmGen);
-			}
+			}			
+			
 			particles = next;
 			normalizeWeights();
 			mmse = minimumMeanSquareDistance();
@@ -263,6 +325,10 @@ public class ParticleFiltering extends DeadReckoning {
 			}			
 		}
         
+		/** Resampling the particles after measurement probability is used to weight all the particles and normalise all the particle weights.
+		 *  It gives importance to most preferred particles. 
+		 * @return   particle with replacement.
+		 */
 		private Particle selectParticleAndCopy() {
 			sel = rand.nextDouble();
 		    index = Arrays.binarySearch(weightSums, sel);
@@ -275,17 +341,21 @@ public class ParticleFiltering extends DeadReckoning {
 			return new Particle(particles[index]);
 		}
 
+		/** Helper funtion for Normalize weights. 
+		 * @return
+		 */
 		private double calculateSums() {
 		    totalSum = 0.0;
 		    len = particles.length;
-		    System.out.println(len);
 			for (int i = 0; i < len; i++) {
-				System.out.print(particles[i].importance_weight);
 				totalSum += particles[i].importance_weight;
 			}
 			return totalSum;
 		}
         
+		
+		/**  Normalise weights if the total sum is not zero or weight all particles to 1.0                   
+		*/
 		private void normalizeWeights() {
 	      sum = calculateSums();
 		  if (sum == 0.0) {
@@ -294,14 +364,17 @@ public class ParticleFiltering extends DeadReckoning {
 			  for (int i = 0; i <len ; i++) {
 				   particles[i].importance_weight = 1.0;
 				}
-				normalizeWeights();
+			  normalizeWeights();
 			}
+		     len = particles.length;
 			for (int i = 0; i <len ; i++) {
 				particles[i].normalizeImportanceWeight(sum);
 			}
 			calculateFilterArray();
 		}
 		
+		/**  weightSums CDF Generation.		  
+		 */
 		private void calculateFilterArray() {
 			this.weightSums[0] = 0.0;
 		    len = particles.length;
@@ -310,12 +383,16 @@ public class ParticleFiltering extends DeadReckoning {
 			    value = this.particles[i].importance_weight;
 				this.weightSums[i + 1] = this.weightSums[i] + value;
 			}
-			total = this.weightSums[this.weightSums.length-1];                        // TO DO : use Dependance on previous Filter weight too..
+			total = this.weightSums[this.weightSums.length-1];                        // TODO : use Dependance on previous Filter weight too..
 			len = weightSums.length;
 			for (int i = 0 ; i < len; i++) {
 				weightSums[i] /= total;
 			}
 		}
+		
+		/** calculates Minimum Mean Square distance of particles from predicted location. This shows the convergence of particles. 
+		 * @return  MMSE of the particles from the estimated particles.
+		 */
 		public double minimumMeanSquareDistance()
 		{  sum = 0.0; err = 0.0; dx = 0.0; dy = 0.0;		
 		   Particle r = getParticleEstimate();
@@ -329,6 +406,9 @@ public class ParticleFiltering extends DeadReckoning {
 		   return (sum/particles.length);
 		}
 		
+		/**	Predicts the most probable particle as the Current location Estimate. 
+		 * @return  The particle with highest Importance weight.
+		 */
 		public Particle getBestMap() {
 			Particle rc = particles[0];
 			best = rc.importance_weight;
@@ -345,6 +425,9 @@ public class ParticleFiltering extends DeadReckoning {
 			return rc;
 		}
 		
+		/** Calculate the mean of all particles based upon importance weights.  
+		 * @return  The Importance weight based mean estimate of all the particles
+		 */
 		public Particle getParticleEstimate(){
 			currentWeight = 0.0; xp =0.0 ; yp = 0.0;
 			len = particles.length;
@@ -359,13 +442,21 @@ public class ParticleFiltering extends DeadReckoning {
 			return pe;
 		}
 		
-		private void updateTrueMag() {			
-			mTrueMeasurement[0] = mRV[0] * measurement[0] + mRV[1] * measurement[1] + mRV[2]
-					* measurement[2];
-			mTrueMeasurement[1] = mRV[3] * measurement[0] + mRV[4] * measurement[1] + mRV[5]
-					* measurement[2];
-			mTrueMeasurement[2] = mRV[6] * measurement[0] + mRV[7] * measurement[1] + mRV[8]
-					* measurement[2];
+		/** The True Magnetic field magnitude inGlobal co-ordinate system is calculated from Rotation Matrix obtained from Sensor life cycle manager. 
+		 */
+		private void updateTrueMag() {
+		//	Log.e(TAG,"measurement[0]= " + String.valueOf(measurement[0]));
+		//	Log.e(TAG,"measurement[1]= " + String.valueOf(measurement[1]));
+		//	Log.e(TAG,"measurement[2]= " + String.valueOf(measurement[2])); 
+		      
+			mTrueMeasurement[0] = mRV[0] * measurement[0] + mRV[1] * measurement[1] + mRV[2] * measurement[2];
+			mTrueMeasurement[1] = mRV[3] * measurement[0] + mRV[4] * measurement[1] + mRV[5] * measurement[2];
+			mTrueMeasurement[2] = mRV[6] * measurement[0] + mRV[7] * measurement[1] + mRV[8] * measurement[2];
+			
+		//	Log.e(TAG,"TrueMeasurement[0]= " + String.valueOf(mTrueMeasurement[0]));
+		//	Log.e(TAG,"TureMeasurement[1]= " + String.valueOf(mTrueMeasurement[1]));
+		//	Log.e(TAG,"TrueMeasurement[2]= " + String.valueOf(mTrueMeasurement[2])); 
+
 		}
 				
 		public int size() {
@@ -416,6 +507,8 @@ public class ParticleFiltering extends DeadReckoning {
 			}
 		}
 		
+		/** Set all the particles to start from an Initial location.		  
+		 */
 		@Override
 		public void setStartPos(float x, float y) {
 			super.setStartPos(x, y);

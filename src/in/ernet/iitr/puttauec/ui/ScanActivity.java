@@ -19,7 +19,7 @@ public class ScanActivity extends Activity implements OnClickListener {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_scan);
-	    System.out.println("ScanActivity");
+	 //   System.out.println("ScanActivity");
 	    Button scanBtn = (Button) findViewById (R.id.button_scan);
 		scanBtn.setOnClickListener(this);
 	}
@@ -44,8 +44,8 @@ public class ScanActivity extends Activity implements OnClickListener {
 		if (scanningResult != null) {
 			String scanContent = scanningResult.getContents();
 			String scanFormat = scanningResult.getFormatName();
-			System.out.println(scanContent);
-			System.out.println(scanFormat);
+			//System.out.println(scanContent);
+			//System.out.println(scanFormat);
 			setResult(RESULT_OK,intent);
 			finish();
 			}

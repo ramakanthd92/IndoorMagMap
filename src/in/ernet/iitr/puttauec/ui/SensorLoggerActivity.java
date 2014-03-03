@@ -21,7 +21,7 @@ public class SensorLoggerActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_sensor_logger);
-		System.out.println("Sensor Logger");
+		//System.out.println("Sensor Logger");
 		Intent intent = getIntent();
 		mSensorLogger = new SensorLogger(this);
 		mLoggingButton = (Button) findViewById(R.id.logging_button);
