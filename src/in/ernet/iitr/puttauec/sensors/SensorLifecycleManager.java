@@ -53,10 +53,10 @@ public class SensorLifecycleManager {
 		mSensorManager.registerListener(mSensorEventListener, mSensorManager
 				.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
 				SENSOR_DELAY);
-	  /*mSensorManager.registerListener(mSensorEventListener,
+	    mSensorManager.registerListener(mSensorEventListener,
 				mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
 				SENSOR_DELAY);  				
-   		mSensorManager.registerListener(mSensorEventListener,
+   		/*mSensorManager.registerListener(mSensorEventListener,
 				mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
 			SENSOR_DELAY); */	
 		mSensorManager.registerListener(mSensorEventListener,

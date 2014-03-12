@@ -7,12 +7,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class MapGenerator implements Runnable{
-	public int N = 4;
+	public int N = 11;
 	private int a = 2;
 	private String json_obj,name;
 	public double [][] magnitudes;
 	public double [] xs;
-	public double [] ys = new double[51];
+	public double [] ys = new double[27];
 	public BicubicSplineInterpolatingFunction f;
 	public BicubicSplineInterpolator interpolator = new BicubicSplineInterpolator();	
     private int j,k,len;
@@ -31,30 +31,18 @@ public class MapGenerator implements Runnable{
 		         for(int i = 0; i < len; i++)
 		            {  name = nameArray.getString(i);
 		        	   JSONArray json_array  = myjson.getJSONArray(name);
-		        	   j = (Integer.valueOf(name)-1) / 51;
-		        	   k = (Integer.valueOf(name)-1) % 51;
-		        	   if(j >= 6 && j <= 8)
-		        	   		{ j -=3;
-		        	   		}
-		        	   else if(j >= 12 && j <=15)
-		        	   		{ j -= 6;		        		   
-		        	   		}
+		        	   j = (Integer.valueOf(name)) / 27;
+		        	   k = (Integer.valueOf(name)) % 27;
+		        	   
 		              magnitudes[j][k] = json_array.getDouble(a);
 		            //hard coded form of data input from the JSON 3rd column
 		      	     }    
-		          for(int i = 0; i < 51; i++)
+		          for(int i = 0; i < 27; i++)
 		            { ys[i] = i;
 		      	    }    
-		          if(N != 10)
-		            {  for(int i=0; i < N; i++)
+		          for(int i=0; i < N; i++)
 		                   { xs[i] = i;
 		      	           } 
-		            }
-		          else
-		            {   xs[0] = 0;  xs[1] =1; xs[2]=2;
-		          	    xs[3] = 6;  xs[4] =7; xs[5]=8;
-		                xs[6] = 12; xs[7]=13; xs[8]=14; xs[9]=15;
-		            }
 		       } catch (JSONException e) {
 		                e.printStackTrace();
 		       }		      
@@ -62,7 +50,7 @@ public class MapGenerator implements Runnable{
 	
 	public void run()
 	{    android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
-	     magnitudes = new double[N][51];
+	     magnitudes = new double[N][27];
     	 xs = new double[N];
     	 parseProfilesJson(json_obj);		    
     	 f = interpolator.interpolate(xs, ys, magnitudes);

@@ -1,7 +1,10 @@
 package in.ernet.iitr.puttauec.algorithms;
 
 
+import in.ernet.iitr.puttauec.sensors.DefaultSensorCallbacks;
 import in.ernet.iitr.puttauec.sensors.SensorLifecycleManager;
+import in.ernet.iitr.puttauec.sensorutil.Matrixf4x4;
+import in.ernet.iitr.puttauec.sensorutil.Quaternion;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -13,9 +16,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import in.ernet.iitr.puttauec.sensors.DefaultSensorCallbacks;
-
 import android.content.Context;
+import android.hardware.SensorManager;
 import android.os.Environment;
 import android.text.format.DateFormat;
 import android.util.Log;
@@ -58,8 +60,26 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	protected boolean mIsLogging;
 	protected FileWriter mAccelLogFileWriter;
 	protected FileWriter mStepLogFileWriter;
+ 
+	
+	 private static final float NS2S = 1.0f / 1000000000.0f;
+	 private final Quaternion deltaQuaternion = new Quaternion();
+     private Quaternion quaternionGyroscope = new Quaternion();
+     private Quaternion quaternionRotationVector = new Quaternion();
+     protected final Quaternion currentOrientationQuaternion= new Quaternion();
+     protected final Matrixf4x4 currentOrientationRotationMatrix = new Matrixf4x4();
 
-	public DeadReckoning(Context ctx) {
+     private static final double EPSILON = 0.1f;
+     private double gyroscopeRotationVelocity = 0;	    
+     private static float[] gyroAngle = {0.f,0.f,0.f};
+     private boolean positionInitialised = false;
+     private int panicCounter;
+     private static final float DIRECT_INTERPOLATION_WEIGHT = 0.005f;
+     private static final float OUTLIER_THRESHOLD = 0.85f;
+     private static final float OUTLIER_PANIC_THRESHOLD = 0.65f;
+     private static final int PANIC_THRESHOLD = 60;
+
+     public DeadReckoning(Context ctx) {
 		init();		
 		mSensorLifecycleManager = SensorLifecycleManager.getInstance(ctx);
 	}
@@ -186,7 +206,77 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 			long timestamp) {
 		super.onMagneticFieldUpdate(values, deltaT, timestamp);
 	}
+	
+	public void onRVFieldUpdate(float[] values, long deltaT,
+			long timestamp) {
+	
+    float[] q = new float[4];
+    // Calculate angle. Starting with API_18, Android will provide this value as event.values[3], but if not, we have to calculate it manually.
+    SensorManager.getQuaternionFromVector(q, values);
+    // Store in quaternion
+    quaternionRotationVector.setXYZW(q[1], q[2], q[3], -q[0]);
+    if (!positionInitialised) {
+        // Override
+        quaternionGyroscope.set(quaternionRotationVector);
+        positionInitialised = true;
+    }
+	}
+	@Override
+	public void onGyroUpdate(float[] values, long deltaT, long timestamp) {
+		// Remove low value sensor noise around 0
+		
+		  // we received a sensor event. it is a good practice to check
+        // that we received the proper event
+            // This timestep's delta rotation to be multiplied by the current rotation
+            // after computing it from the gyro sample data.
+            if (timestamp != 0) {
+                final float dT = (deltaT) * NS2S;
+                // Axis of the rotation sample, not normalized yet.
+                float axisX = values[0];
+                float axisY = values[1];
+                float axisZ = values[2];
 
+                // Calculate the angular speed of the sample
+                gyroscopeRotationVelocity = Math.sqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
+
+                // Normalize the rotation vector if it's big enough to get the axis
+                if (gyroscopeRotationVelocity > EPSILON) {
+                    axisX /= gyroscopeRotationVelocity;
+                    axisY /= gyroscopeRotationVelocity;
+                    axisZ /= gyroscopeRotationVelocity;
+                }
+
+                // Integrate around this axis with the angular speed by the timestep
+                // in order to get a delta rotation from this sample over the timestep
+                // We will convert this axis-angle representation of the delta rotation
+                // into a quaternion before turning it into the rotation matrix.
+                double thetaOverTwo = gyroscopeRotationVelocity * dT / 2.0f;
+                double sinThetaOverTwo = Math.sin(thetaOverTwo);
+                double cosThetaOverTwo = Math.cos(thetaOverTwo);
+                deltaQuaternion.setX((float) (sinThetaOverTwo * axisX));
+                deltaQuaternion.setY((float) (sinThetaOverTwo * axisY));
+                deltaQuaternion.setZ((float) (sinThetaOverTwo * axisZ));
+                deltaQuaternion.setW(-(float) cosThetaOverTwo);
+
+                // Matrix rendering in CubeRenderer does not seem to have this problem.
+                synchronized (this) {
+                    // Move current gyro orientation if gyroscope should be used
+                    deltaQuaternion.multiplyByQuat(currentOrientationQuaternion, currentOrientationQuaternion);
+                }
+
+                Quaternion correctedQuat = currentOrientationQuaternion.clone();
+                // We inverted w in the deltaQuaternion, because currentOrientationQuaternion required it.
+                // Before converting it back to matrix representation, we need to revert this process
+                correctedQuat.w(-correctedQuat.w());
+
+                synchronized (this) {
+                    // Set the rotation matrix as well to have both representations
+                    SensorManager.getRotationMatrixFromVector(currentOrientationRotationMatrix.matrix, correctedQuat.ToArray());
+                }
+                
+                SensorManager.getOrientation(currentOrientationRotationMatrix.matrix,gyroAngle);
+            }
+	}
 	/* (non-Javadoc)
 	 * @see in.ernet.iitr.divyeuec.algorithms.IReckoningMethod#setStepDisplacement(float[])
 	 */
@@ -230,7 +320,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	 */
 	@Override
 	public double getAngleRadians() {
-		return mSensorLifecycleManager.getOrientation()[0];
+		return gyroAngle[0];
 		// return mRoughAngle;
 	}
 	
