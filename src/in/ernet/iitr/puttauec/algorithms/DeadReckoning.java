@@ -128,7 +128,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 						double turnAngle = gyroAngle[0];
 						Log.d(TAG,"turn Angle" + String.valueOf(turnAngle));
 				        
-						turnAngle = (Math.abs(turnAngle) > (15./180.)*Math.PI) ? turnAngle : 0.0; 
+						turnAngle = (Math.abs(turnAngle) > (10./180.)*Math.PI) ? turnAngle : 0.0; 
 				        
 						
 						if(this.isLogging()) {

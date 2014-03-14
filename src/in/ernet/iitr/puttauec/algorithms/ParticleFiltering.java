@@ -21,10 +21,10 @@ import Jama.*;
 public class ParticleFiltering extends DeadReckoning {
 	   //constants
        private static final String TAG = "PaicleFilterReckoning";
-	   public static final int DEFAULT_PARTICLE_COUNT = 1000; //1000 //2000
-	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 200; // 400  //600 //800 //1000 //1500 
+	   public static final int DEFAULT_PARTICLE_COUNT = 2000; //1000 //2000
+	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 260; // 400  //600 //800 //1000 //1500 
 	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 2000; //2000 //10000  //15000
-	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 150; //2000 //10000  //15000
+	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 60; //2000 //10000  //15000
 	   private static final double INIT_SD_X = 1.0;
 	   private static final double INIT_SD_Y = 1.0;	   
 	   private static final double  minX  = 0.0  ; 
@@ -279,8 +279,8 @@ public class ParticleFiltering extends DeadReckoning {
 		@Override
 		public void onMagneticFieldUpdate(float[] values, long deltaT, long timestamp) {
 			super.onMagneticFieldUpdate(values, deltaT, timestamp);
-			this.measurement[0] = values[0] - xoffset;
-			this.measurement[1] = values[1] - yoffset;
+			this.measurement[0] = values[0];
+			this.measurement[1] = values[1];
 			this.measurement[2] = values[2];
 			this.magnitude= Math.sqrt(this.measurement[0]*this.measurement[0] + this.measurement[1]*this.measurement[1] + this.measurement[2]*this.measurement[2]);			
 			if(this.isLogging()) {
@@ -311,12 +311,15 @@ public class ParticleFiltering extends DeadReckoning {
 				{ inside_len++ ; 				
 				}
 			}
-			inside_particles = new Particle[inside_len];
-			int j = 0;
-			for (int i = 0 ; i< len; i++)
-			{ if ((particles[i].x > minX && particles[i].x < maxX) && (particles[i].y > minY && particles[i].y < maxY))
-				{  inside_particles[j] = particles[i];
-				   j++;
+			
+			if(inside_len != 0)
+			{  inside_particles = new Particle[inside_len];
+				int j = 0;
+				for (int i = 0 ; i< len; i++)
+				{ if ((particles[i].x > minX && particles[i].x < maxX) && (particles[i].y > minY && particles[i].y < maxY))
+					{   inside_particles[j] = particles[i];
+						j++;
+					}
 				}
 			}	
 			
@@ -340,7 +343,7 @@ public class ParticleFiltering extends DeadReckoning {
 				} catch (IOException e) {
 					Log.e(TAG, "Log file write for MMSEDistance failed!!!\n", e);
 					e.printStackTrace();
-		}
+				}
 	}
 }
     
@@ -350,7 +353,7 @@ public class ParticleFiltering extends DeadReckoning {
 		 */
 		private Particle selectParticleAndCopy() {
 			sel = rand.nextDouble();
-		  //  System.out.println(inside_particles.length);
+		  // System.out.println(inside_particles.length);
 		  // System.out.println(weightSums.length);
 			index = Arrays.binarySearch(weightSums,0,inside_particles.length,sel);
 			if (index < 0) {
@@ -465,7 +468,7 @@ public class ParticleFiltering extends DeadReckoning {
 			for (int i = 0; i <len ; i++) {
 				  currentWeight = inside_particles[i].importance_weight;
                   xp += currentWeight*inside_particles[i].x;
-           /*       System.out.print('(');
+         /*       System.out.print('(');
                   System.out.print(currentWeight);
                   System.out.print(',');
                   System.out.print(particles[i].x);
@@ -529,8 +532,7 @@ public class ParticleFiltering extends DeadReckoning {
 		
 		@Override
 		public void stopLogging() {
-			mIsLogging = false;
-			
+			mIsLogging = false;			
 			try {
 				mMMSEDistanceFileWriter.flush();
 				mMMSEDistanceFileWriter.close();
