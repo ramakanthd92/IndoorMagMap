@@ -3,9 +3,6 @@ package in.ernet.iitr.puttauec.algorithms;
 
 import in.ernet.iitr.puttauec.sensors.DefaultSensorCallbacks;
 import in.ernet.iitr.puttauec.sensors.SensorLifecycleManager;
-import in.ernet.iitr.puttauec.sensorutil.Matrixf4x4;
-import in.ernet.iitr.puttauec.sensorutil.Quaternion;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -33,7 +30,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	private static final int VALLEY_HUNT = 1;
 
 	// These constants are expected to be divided by 1000 before use
-	public static final int DEFAULT_TRAINING_CONSTANT = 1540; // 5200; // 3300; // 1937;
+	public static final int DEFAULT_TRAINING_CONSTANT = 770; // 5200; // 3300; // 1937;
 	public static final int DEFAULT_ACCEL_THRESHOLD = 1300; // 1840; //1300 /1400 //1500 
 	
 	// Instance variables
@@ -43,6 +40,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	protected float mAccelThreshold = DEFAULT_ACCEL_THRESHOLD/1000.f;
 	private float mStartX; // on a 0-1 scale based on the map
 	private float mStartY;
+	private boolean initState = true;
 	private int mMapWidth = DEFAULT_MAP_WIDTH;
 	private int mMapHeight = DEFAULT_MAP_HEIGHT;
 	
@@ -63,22 +61,16 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
  
 	
 	 private static final float NS2S = 1.0f / 1000000000.0f;
-	 private final Quaternion deltaQuaternion = new Quaternion();
-     private Quaternion quaternionGyroscope = new Quaternion();
-     private Quaternion quaternionRotationVector = new Quaternion();
-     protected final Quaternion currentOrientationQuaternion= new Quaternion();
-     protected final Matrixf4x4 currentOrientationRotationMatrix = new Matrixf4x4();
-
+	 private float [] deltaQuaternion = {0.f,0.f,0.f,0.f};
+     private float[] gyroMatrix = new float[9];
+     private float[] rotationMatrix = new float[9];     
+     private float[] RVOrientation = {0.f,0.f,0.f};
+    
      private static final double EPSILON = 0.1f;
      private double gyroscopeRotationVelocity = 0;	    
      private static float[] gyroAngle = {0.f,0.f,0.f};
      private boolean positionInitialised = false;
-     private int panicCounter;
-     private static final float DIRECT_INTERPOLATION_WEIGHT = 0.005f;
-     private static final float OUTLIER_THRESHOLD = 0.85f;
-     private static final float OUTLIER_PANIC_THRESHOLD = 0.65f;
-     private static final int PANIC_THRESHOLD = 60;
-
+     
      public DeadReckoning(Context ctx) {
 		init();		
 		mSensorLifecycleManager = SensorLifecycleManager.getInstance(ctx);
@@ -113,13 +105,11 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 				throw new RuntimeException(e);
 			}
 		}
-      
         if(Math.abs(values[2]) < mAccelThreshold) {
 			 values[0] = 0;
 			 values[1] = 0;
 			 values[2] = 0;
 		}
-
 		// Count local maxima
 		synchronized(mAccelHistory) {
 			float s0 = mAccelHistory.get(mAccelHistory.size()-2)[2], s1 = mAccelHistory.get(mAccelHistory.size()-1)[2], s2 = values[2];
@@ -135,10 +125,15 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 
 						double stepSize = getStepSize();
 						double radAngle = getAngleRadians();
+						double turnAngle = gyroAngle[0];
+						Log.d(TAG,"turn Angle" + String.valueOf(turnAngle));
+				        
+						turnAngle = (Math.abs(turnAngle) > (15./180.)*Math.PI) ? turnAngle : 0.0; 
+				        
 						
 						if(this.isLogging()) {
 							try {
-								mStepLogFileWriter.write("" + timestamp + "," + deltaT + "," + stepSize + "," + Math.toDegrees(radAngle) + "\n");
+								mStepLogFileWriter.write("" + timestamp + "," + deltaT + "," + stepSize + "," + Math.toDegrees(radAngle) + "," + Math.toDegrees(turnAngle) +"\n");
 							} catch (IOException e) {
 								Log.e(TAG, "Writing to step log file failed!", e);
 								e.printStackTrace();
@@ -152,10 +147,10 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 						
 						if(radAngle < -Math.PI)
 							radAngle += 2*Math.PI;
-						
 						// Expected to set the new location of the person
-						updateLocation(stepSize, radAngle);
+						updateLocation(stepSize,radAngle,turnAngle);
 						
+						initState = true;		
 						synchronized(mPath) {
 							mPath.add(new float[] { mLocation[0], mLocation[1], (float)radAngle});
 						}
@@ -187,7 +182,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 		return netAccel;
 	} */
 
-	protected void updateLocation(double stepSize, double radAngle) {
+	protected void updateLocation(double stepSize, double radAngle,double turnAngle) {
 		mLocation[0] += Math.sin(radAngle)*stepSize;
 		mLocation[1] += Math.cos(radAngle)*stepSize; // negative sign due to image coordinate system v/s True North angle
 	}
@@ -205,31 +200,29 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	public void onMagneticFieldUpdate(float[] values, long deltaT,
 			long timestamp) {
 		super.onMagneticFieldUpdate(values, deltaT, timestamp);
+		
 	}
 	
-	public void onRVFieldUpdate(float[] values, long deltaT,
-			long timestamp) {
-	
-    float[] q = new float[4];
-    // Calculate angle. Starting with API_18, Android will provide this value as event.values[3], but if not, we have to calculate it manually.
-    SensorManager.getQuaternionFromVector(q, values);
-    // Store in quaternion
-    quaternionRotationVector.setXYZW(q[1], q[2], q[3], -q[0]);
-    if (!positionInitialised) {
-        // Override
-        quaternionGyroscope.set(quaternionRotationVector);
-        positionInitialised = true;
-    }
+	@Override
+	public void onRotationVectorUpdate(float[] values, long deltaT, long timestamp) {
+            SensorManager.getRotationMatrixFromVector(rotationMatrix,values);
+	        SensorManager.getOrientation(rotationMatrix, RVOrientation);
 	}
+	
 	@Override
 	public void onGyroUpdate(float[] values, long deltaT, long timestamp) {
-		// Remove low value sensor noise around 0
-		
-		  // we received a sensor event. it is a good practice to check
-        // that we received the proper event
-            // This timestep's delta rotation to be multiplied by the current rotation
-            // after computing it from the gyro sample data.
-            if (timestamp != 0) {
+	      if(initState)
+	      {     gyroAngle[0] = 0.0f;
+	      		gyroAngle[1] = 0.0f;
+	      		gyroAngle[2] = 0.0f;
+
+	        // initialise gyroMatrix with identity matrix
+	      		gyroMatrix[0] = 1.0f; gyroMatrix[1] = 0.0f; gyroMatrix[2] = 0.0f;
+	      		gyroMatrix[3] = 0.0f; gyroMatrix[4] = 1.0f; gyroMatrix[5] = 0.0f;
+	      		gyroMatrix[6] = 0.0f; gyroMatrix[7] = 0.0f; gyroMatrix[8] = 1.0f;
+	    	    initState = false; 
+	      }
+		  if (timestamp != 0) {
                 final float dT = (deltaT) * NS2S;
                 // Axis of the rotation sample, not normalized yet.
                 float axisX = values[0];
@@ -253,31 +246,36 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
                 double thetaOverTwo = gyroscopeRotationVelocity * dT / 2.0f;
                 double sinThetaOverTwo = Math.sin(thetaOverTwo);
                 double cosThetaOverTwo = Math.cos(thetaOverTwo);
-                deltaQuaternion.setX((float) (sinThetaOverTwo * axisX));
-                deltaQuaternion.setY((float) (sinThetaOverTwo * axisY));
-                deltaQuaternion.setZ((float) (sinThetaOverTwo * axisZ));
-                deltaQuaternion.setW(-(float) cosThetaOverTwo);
-
-                // Matrix rendering in CubeRenderer does not seem to have this problem.
-                synchronized (this) {
-                    // Move current gyro orientation if gyroscope should be used
-                    deltaQuaternion.multiplyByQuat(currentOrientationQuaternion, currentOrientationQuaternion);
-                }
-
-                Quaternion correctedQuat = currentOrientationQuaternion.clone();
-                // We inverted w in the deltaQuaternion, because currentOrientationQuaternion required it.
-                // Before converting it back to matrix representation, we need to revert this process
-                correctedQuat.w(-correctedQuat.w());
-
-                synchronized (this) {
-                    // Set the rotation matrix as well to have both representations
-                    SensorManager.getRotationMatrixFromVector(currentOrientationRotationMatrix.matrix, correctedQuat.ToArray());
-                }
+                deltaQuaternion[0] = (float) (sinThetaOverTwo * axisX);
+                deltaQuaternion[1] = (float) (sinThetaOverTwo * axisY);
+                deltaQuaternion[2] = (float) (sinThetaOverTwo * axisZ);
+                deltaQuaternion[3] = (float) cosThetaOverTwo;
+               // Set the rotation matrix as well to have both representations
                 
-                SensorManager.getOrientation(currentOrientationRotationMatrix.matrix,gyroAngle);
-            }
+                float[] deltaRotationMatrix = new float[9];
+                SensorManager.getRotationMatrixFromVector(deltaRotationMatrix, deltaQuaternion);
+                gyroMatrix = matrixMultiplication(gyroMatrix, deltaRotationMatrix);
+                SensorManager.getOrientation(gyroMatrix, gyroAngle);
+	        }
 	}
-	/* (non-Javadoc)
+	
+	 private float[] matrixMultiplication(float[] A, float[] B) {
+	        float[] result = new float[9];
+	     
+	        result[0] = A[0] * B[0] + A[1] * B[3] + A[2] * B[6];
+	        result[1] = A[0] * B[1] + A[1] * B[4] + A[2] * B[7];
+	        result[2] = A[0] * B[2] + A[1] * B[5] + A[2] * B[8];
+	     
+	        result[3] = A[3] * B[0] + A[4] * B[3] + A[5] * B[6];
+	        result[4] = A[3] * B[1] + A[4] * B[4] + A[5] * B[7];
+	        result[5] = A[3] * B[2] + A[4] * B[5] + A[5] * B[8];
+	     
+	        result[6] = A[6] * B[0] + A[7] * B[3] + A[8] * B[6];
+	        result[7] = A[6] * B[1] + A[7] * B[4] + A[8] * B[7];
+	        result[8] = A[6] * B[2] + A[7] * B[5] + A[8] * B[8];
+	     
+	        return result;
+	    }/* (non-Javadoc)
 	 * @see in.ernet.iitr.divyeuec.algorithms.IReckoningMethod#setStepDisplacement(float[])
 	 */
 	@Override
