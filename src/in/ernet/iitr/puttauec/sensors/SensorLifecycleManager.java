@@ -17,6 +17,7 @@ public class SensorLifecycleManager {
 	private HWSensorEventListener mSensorEventListener;
 
 	public static final int SENSOR_ACCELEROMETER = 1;
+	public static final int SENSOR_LINEAR_ACCELERATION = 6;
 	public static final int SENSOR_GRAVITY = 2;
 	public static final int SENSOR_MAGNETISM = 3;
 	public static final int SENSOR_GYROSCOPE = 4;
@@ -48,12 +49,15 @@ public class SensorLifecycleManager {
 	private void resumeHWEventListeners() {
 		int SENSOR_DELAY = SensorManager.SENSOR_DELAY_NORMAL;
 		mSensorManager.registerListener(mSensorEventListener, mSensorManager
-				.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
+				.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
 				SENSOR_DELAY);
 		mSensorManager.registerListener(mSensorEventListener, mSensorManager
+				.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
+				SENSOR_DELAY);
+	/*	mSensorManager.registerListener(mSensorEventListener, mSensorManager
 				.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
 				SENSOR_DELAY);
-	   mSensorManager.registerListener(mSensorEventListener,
+	*/  mSensorManager.registerListener(mSensorEventListener,
 				mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
 				SENSOR_DELAY);  				
    	/*	mSensorManager.registerListener(mSensorEventListener,
@@ -78,6 +82,7 @@ public class SensorLifecycleManager {
 
 		switch (sensorEventType) {
 		case SENSOR_ACCELEROMETER:
+		case SENSOR_LINEAR_ACCELERATION:
 		case SENSOR_GYROSCOPE:
 		case SENSOR_GRAVITY:
 		case SENSOR_MAGNETISM:
@@ -103,6 +108,7 @@ public class SensorLifecycleManager {
 	public void unregisterCallback(ISensorCallback callback, int sensorEventType) {
 		switch (sensorEventType) {
 		case SENSOR_ACCELEROMETER:
+		case SENSOR_LINEAR_ACCELERATION:			
 		case SENSOR_GYROSCOPE:
 		case SENSOR_GRAVITY:
 		case SENSOR_MAGNETISM:
@@ -123,6 +129,7 @@ public class SensorLifecycleManager {
 	// the object has registered itself.
 	public void unregisterCallback(ISensorCallback callback) {
 		unregisterCallback(callback, SENSOR_ACCELEROMETER);
+		unregisterCallback(callback, SENSOR_LINEAR_ACCELERATION);
 		unregisterCallback(callback, SENSOR_GRAVITY);
 		unregisterCallback(callback, SENSOR_GYROSCOPE);
 		unregisterCallback(callback, SENSOR_MAGNETISM);

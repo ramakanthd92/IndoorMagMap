@@ -3,6 +3,11 @@ package in.ernet.iitr.puttauec.sensors;
 public class DefaultSensorCallbacks implements ISensorCallback {
 
 	@Override
+	public void onLinearAccelUpdate(float[] values, long deltaT, long timestamp) {
+		// TODO Auto-generated method stub
+
+	}
+	@Override
 	public void onAccelUpdate(float[] values, long deltaT, long timestamp) {
 		// TODO Auto-generated method stub
 

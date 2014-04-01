@@ -7,36 +7,35 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Random;
 
-import org.apache.commons.math3.analysis.interpolation.BicubicSplineInterpolatingFunction;
-
+import Jama.Matrix;
 import android.content.Context;
-//import android.os.Handler;
 import android.text.format.DateFormat;
 import android.util.Log;
-import Jama.*; 
+//import android.os.Handler;
 
 public class ParticleFiltering extends DeadReckoning {
 	   //constants
        private static final String TAG = "PaicleFilterReckoning";
 	   public static final int DEFAULT_PARTICLE_COUNT = 2000; //1000 //2000
 	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 260; // 400  //600 //800 //1000 //1500 
-	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 2000; //2000 //10000  //15000
+	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 2500; //2000 //10000  //15000
 	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 60; //2000 //10000  //15000
 	   private static final double INIT_SD_X = 1.0;
 	   private static final double INIT_SD_Y = 1.0;	   
 	   private static final double  minX  = 0.0  ; 
-	   private static  double  maxX  = 10.0 ;  
+	   private static  double  maxX  = 16.0 ;  
 	   private static final double  minY  = 0.0 ;  
 	   private static final double  maxY  = 26.0 ; 
 	   private static final double mul =(180/Math.PI);
 	   private static final double cons = Math.pow(2.0*Math.PI,1.5);
 	   private static final double prb = 0.0001;			// The constant probability for the particles going away from the measured map
 	   private static final double kin = Math.pow(10.0,15.0);             // The multiplier to account for too much less probability for the particles prediction.
-	   private static final double xoffset = 12.8375610466;
-	   private static final double yoffset = -0.0999689574027;
+	  // private static final double xoffset = 12.8375610466;
+	  // private static final double yoffset = -0.0999689574027;
 	   
 	   //Instance variables
 	   private static final Random rand = RandomSingleton.instance;
@@ -49,9 +48,10 @@ public class ParticleFiltering extends DeadReckoning {
 	   protected MapGenerator magneticmapw,magneticmape,magneticmapz;    // magnetic field map instances for x,y,z axes readings
 	   protected Particle[] particles ;// particles
 	   protected Particle[] inside_particles ;
+	   protected Particle[] sortedParticles ;
 	   protected double[] weightSums ;									// CDF of importance weights
 	   private double magnitude;										 // magnitude to be written to Magnetic field log.
-	   
+	   private double angle;
 	   //Control parameters 
 	   private static int particleCount = DEFAULT_PARTICLE_COUNT;       
 	   private static double msenseNoise = DEFAULT_SENSE_NOISE_THRESHOLD/1000.f;    // Step Noise for the particles used in dynamical equation.  Reduce this to a mimimum to reduce error in path length.  
@@ -106,7 +106,7 @@ public class ParticleFiltering extends DeadReckoning {
     	public Particle()
     		{  	x  = minX + (maxX-minX)*rand.nextDouble() ; 		    
     			y  = minY + (maxY-minY)*rand.nextDouble() ; 
-    			theta = 2*Math.PI*rand.nextDouble();
+    			theta = mturnNoise*rand.nextGaussian();
     			importance_weight = 1.0;
     		}	 
     	public Particle(Particle P)
@@ -120,12 +120,12 @@ public class ParticleFiltering extends DeadReckoning {
     			y = y_co;
     			theta = theta_co; 
     		}	 
-    	public void move(double step_size, double turn_angle)
+    	public void move(double step_size, double rad_angle)
     		{   step_act = step_size + mstepNoise*rand.nextGaussian();
-    		 	theta = this.theta + turn_angle + mturnNoise*rand.nextGaussian();
-                theta %= (Math.PI*2);
-    		 	x = x + (step_act* Math.sin(theta));                   // TODO : Use Particles Theta Value Here   // x %= maxX;         																	   // TODO : Use Map Bounds Here 
-    			y = y + (step_act* Math.cos(theta));                   // TODO : Use Velocity Dependent step_noise and turn_noise here
+    		 	angle = rad_angle + mturnNoise*rand.nextGaussian();
+                angle %= (Math.PI*2);
+    		 	x = x + (step_act* Math.sin(angle));                   // TODO : Use Particles Theta Value Here   // x %= maxX;         																	   // TODO : Use Map Bounds Here 
+    			y = y + (step_act* Math.cos(angle));                   // TODO : Use Velocity Dependent step_noise and turn_noise here
     		}
     	public void SensorErrorModel(double Magnetic_Measurement,double rad_angle)
     		{   importance_weight = 1.0;		      
@@ -165,10 +165,10 @@ public class ParticleFiltering extends DeadReckoning {
 		public ParticleFiltering(Context ctx) {
 			super(ctx);   
 	//TODO: Incorporate the Barcode Scanner to identify the path way.
-	 	    String json_obj_0 = loadJSONFromAsset(ctx,"data-west-2.json");
-		    String json_obj_1 = loadJSONFromAsset(ctx,"data-east-2.json");
-    		magneticmapw = new MapGenerator(json_obj_0, 11,3);
- 			magneticmape = new MapGenerator(json_obj_1, 11,3);
+	 	    String json_obj_0 = loadJSONFromAsset(ctx,"data-west-6.json");
+		    String json_obj_1 = loadJSONFromAsset(ctx,"data-east-6.json");
+    		magneticmapw = new MapGenerator(json_obj_0, 17,3);
+ 			magneticmape = new MapGenerator(json_obj_1, 17,3);
 			magneticmapw.run();
 	        magneticmape.run();	       
 		}
@@ -310,8 +310,7 @@ public class ParticleFiltering extends DeadReckoning {
 			{ if ((particles[i].x > minX && particles[i].x < maxX) && (particles[i].y > minY && particles[i].y < maxY))
 				{ inside_len++ ; 				
 				}
-			}
-			
+			}	
 			if(inside_len != 0)
 			{  inside_particles = new Particle[inside_len];
 				int j = 0;
@@ -321,14 +320,13 @@ public class ParticleFiltering extends DeadReckoning {
 						j++;
 					}
 				}
-			}	
-			
+			}
 			for (int i = 0 ; i< len; i++) {
 		     	next[i] = selectParticleAndCopy();
-				next[i].move(step_size,turn_angle);                        // TODO: Should order move and sense			
+				next[i].move(step_size,rad_angle);                        // TODO: Should order move and sense			
 				next[i].SensorErrorModel(magnitude,rad_angle);
 	//			System.out.println(magnitude);
-				orien += particles[i].theta ;				
+				orien += angle ;				
 			}			
 			orien = orien/len;
 			particles = next;
@@ -429,7 +427,7 @@ public class ParticleFiltering extends DeadReckoning {
 		 */
 		public double minimumMeanSquareDistance()
 		{  sum = 0.0; err = 0.0; dx = 0.0; dy = 0.0;		
-		   Particle r = getParticleEstimate();
+		   Particle r = getParticleMedian();
 		   len = inside_particles.length;
 		   for (int i = 0; i <len ; i++)  // calculate mean error
 			{  dx = (inside_particles[i].x - r.x);
@@ -463,20 +461,38 @@ public class ParticleFiltering extends DeadReckoning {
 		 * @return  The Importance weight based mean estimate of all the particles
 		 */
 		public Particle getParticleEstimate(){
-			currentWeight = 0.0; xp =0.0 ; yp = 0.0;
+			currentWeight = 0.0; xp = 0.0 ; yp = 0.0;
+			double totalWeight = 0.0;
 			len = inside_particles.length;
+			
 			for (int i = 0; i <len ; i++) {
 				  currentWeight = inside_particles[i].importance_weight;
-                  xp += currentWeight*inside_particles[i].x;
-         /*       System.out.print('(');
-                  System.out.print(currentWeight);
-                  System.out.print(',');
-                  System.out.print(particles[i].x);
-                  System.out.print(',');
-                  System.out.print(particles[i].y);
-                  System.out.print(')');
-          */      yp += currentWeight*inside_particles[i].y;
+				  totalWeight += currentWeight;
+                  xp += inside_particles[i].x;
+                  yp += inside_particles[i].y;
 				}
+			xp /= len;
+			yp /= len;
+			System.out.println(totalWeight);
+		    Particle pe = new Particle();
+		    pe.set_pos(xp,yp,0.0);
+			setLocation(xp,yp);
+			return pe;
+		}
+
+		public Particle getParticleMedian(){
+			currentWeight = 0.0; xp = 0.0 ; yp = 0.0;
+			len = inside_particles.length;
+			double[] xs = new double [len]; 
+			double[] ys = new double [len];
+			for (int i = 0; i <len ; i++) {
+			   xs[i] = inside_particles [i].x;
+			   ys[i] = inside_particles [i].y;
+			}
+			Arrays.sort(xs);
+			Arrays.sort(ys);	
+			xp = xs[len/2];
+			yp = ys[len/2];
 		    Particle pe = new Particle();
 		    pe.set_pos(xp,yp,0.0);
 			setLocation(xp,yp);
@@ -611,18 +627,18 @@ public class ParticleFiltering extends DeadReckoning {
 		}
 		
 	
-/*	private static final Comparator mapFitness = new Comparator() {
+	/* private static final Comparator mapFitness = new Comparator() {
 			/** 
 			 * Fitness is an approximation of p(z|x,z,m)
 			 * Larger values are better.
 			 * Values are normalized and selection using monte-carlo selection.
 			 */
-/*			public int compare(Object o1, Object o2) {
+		/*	public int compare(Object o1, Object o2) {
 				Particle map1 = (Particle) o1;
 				Particle map2 = (Particle) o2;
-				if (map1.getImportanceWeight() < map2.getImportanceWeight()) {
+				if (map1.importance_weight < map2.importance_weight) {
 					return -1;
-				} else if (map1.getImportanceWeight() > map2.getImportanceWeight()) {
+				} else if (map1.importance_weight > map2.importance_weight) {
 					return 1;
 				} else {
 					return 0;
@@ -631,26 +647,26 @@ public class ParticleFiltering extends DeadReckoning {
 		};
 
 		private void sortParticles() {
-			System.out.println(particles.length);
-			sortedParticles = new Particle[particles.length];
-			System.arraycopy(particles, 0, sortedParticles, 0, particles.length);
+		//	System.out.println(particles.length);
+			sortedParticles = new Particle[inside_particles.length];
+			System.arraycopy(inside_particles, 0, sortedParticles, 0, inside_particles.length);
 //			 sortedParticles = (LandmarkMap[])particles.clone();
 			Arrays.sort(sortedParticles, particleFitnessComparator);
-			System.out.println(particles.length);
-			System.out.println(weightSums.length);
-			System.out.println(sortedParticles.length);
+			//System.out.println(particles.length);
+			//System.out.println(weightSums.length);
+			//System.out.println(sortedParticles.length);
 			
 		}
 	
 		private static final Comparator<Particle> particleFitnessComparator = new Comparator<Particle>() {
 			public int compare(Particle o1, Particle o2) {
-				double w1 = o1.getImportanceWeight();
-				double w2 = o2.getImportanceWeight();
+				double w1 = o1.importance_weight;
+				double w2 = o2.importance_weight;
 				if( w1 == w2 ) return 0;
 				return (w1 < w2)?1:-1;
 			}
 		};
-      
-		*/
+      */
+		
 }
 ;

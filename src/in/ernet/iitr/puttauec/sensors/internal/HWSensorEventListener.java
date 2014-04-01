@@ -24,10 +24,12 @@ public class HWSensorEventListener implements SensorEventListener {
 	public static final String KEY_ANGLES_ARRAY = "KeyAnglesArray";
 	public static final String KEY_ANGULAR_VELOCITY_ARRAY = "KeyAngularVelocityArray";
 	public static final String KEY_ACCEL_ARRAY = "KeyAccelArray";
+	public static final String KEY_ACT_ACCEL_ARRAY = "KeyActAccelArray";
 	public static final String KEY_VELOCITY_ARRAY = "KeyVelocityArray";
 	public static final String KEY_DISPLACEMENT_ARRAY = "KeyDisplacementArray";
 	public static final String KEY_LAST_GYRO_TIMESTAMP = "KeyLastGyroTimestamp";
 	public static final String KEY_LAST_ACCEL_TIMESTAMP = "KeyLastAccelTimestamp";
+	public static final String KEY_LAST_ACT_ACCEL_TIMESTAMP = "KeyLastActAccelTimestamp";
 	public static final String KEY_ACCEL_ACCURACY = "KeyAccelAccuracy";
 	public static final String KEY_GYRO_ACCURACY = "KeyGyroAccuracy";
 	public static final String KEY_ROTATION_VECTOR_ACCURACY = "KeyRotationVectorAccuracy";
@@ -52,6 +54,7 @@ public class HWSensorEventListener implements SensorEventListener {
 	private int mRotationVectorAccuracy;
 	private int mMagneticFieldAccuracy;
 	private long mLastAccelTimestamp;
+	private long mLastActAccelTimestamp;
 	private long mLastGyroTimestamp;
 	private long mLastGravityTimestamp;
 	private long mLastMagneticFieldTimestamp;
@@ -59,12 +62,13 @@ public class HWSensorEventListener implements SensorEventListener {
 	private float[] mDisplacement = new float[] { 0.f, 0.f, 0.f };
 	private float[] mVelocity = new float[] { 0.f, 0.f, 0.f };
 	private float[] mAccel = new float[] { 0.f, 0.f, 0.f };
+	private float[] mActAccel = new float[] { 0.f, 0.f, 0.f };	
 	private float[] mAngularVelocity = new float[] { 0.f, 0.f, 0.f };
 	private float[] mAngles = new float[] { 0.f, 0.f, 0.f };
 	private float[] mGravity = new float[] { 0.f, 0.f, 0.f };
 	private float[] mMagneticField = new float[] { 0.f, 0.f, 0.f };
 	private float[] mRotationVector = new float[] { 0.f, 0.f, 0.f };
-	private float[] mTrueAccel = new float[] { 0.f, 0.f, 0.f };
+	private float[] mTrueAccel = new float[] { 0.f, 0.f, 0.f};
 	private float[] mI = new float[] { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
 			0.f };
 	private float[] mR = new float[] { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
@@ -73,6 +77,7 @@ public class HWSensorEventListener implements SensorEventListener {
 			0.f };
 	
 	private float[] mPrevAccel = new float[] { 0.f,0.f,0.f};
+	private float[] mPrevActAccel = new float[] { 0.f,0.f,0.f};
 	private float[] mPrevTrueAccel = new float[] {0.f, 0.f,0.f};
 	private float[] mPrevDisplacement = new float[]{0.f,0.f,0.f};
 	private float[] mPrevVelocity = new float[] {0.f,0.f,0.f};
@@ -93,6 +98,7 @@ public class HWSensorEventListener implements SensorEventListener {
 		mMagneticFieldAccuracy = pastValues.getInt(KEY_MAGNETIC_FIELD_ACCURACY,0);
 		
 		mLastAccelTimestamp = pastValues.getLong(KEY_LAST_ACCEL_TIMESTAMP, 0);
+		mLastActAccelTimestamp = pastValues.getLong(KEY_LAST_ACT_ACCEL_TIMESTAMP, 0);
 		mLastGyroTimestamp = pastValues.getLong(KEY_LAST_GYRO_TIMESTAMP, 0);
 		mLastGravityTimestamp = pastValues.getLong(KEY_LAST_GRAVITY_TIMESTAMP,0);
 		mLastMagneticFieldTimestamp = pastValues.getLong(KEY_LAST_MAGNETIC_FIELD_TIMESTAMP, 0);
@@ -101,6 +107,7 @@ public class HWSensorEventListener implements SensorEventListener {
 		mDisplacement = pastValues.containsKey(KEY_DISPLACEMENT_ARRAY) ? pastValues.getFloatArray(KEY_DISPLACEMENT_ARRAY) : mDisplacement;
 		mVelocity = pastValues.containsKey(KEY_VELOCITY_ARRAY) ? pastValues.getFloatArray(KEY_VELOCITY_ARRAY) : mVelocity;
 		mAccel = pastValues.containsKey(KEY_ACCEL_ARRAY) ? pastValues.getFloatArray(KEY_ACCEL_ARRAY) : mAccel;
+		mActAccel = pastValues.containsKey(KEY_ACT_ACCEL_ARRAY) ? pastValues.getFloatArray(KEY_ACT_ACCEL_ARRAY) : mActAccel;
 		mAngularVelocity = pastValues.containsKey(KEY_ANGULAR_VELOCITY_ARRAY) ? pastValues.getFloatArray(KEY_ANGULAR_VELOCITY_ARRAY) : mAngularVelocity;
 		mAngles = pastValues.containsKey(KEY_ANGLES_ARRAY) ? pastValues.getFloatArray(KEY_ANGLES_ARRAY) : mAngles;
 		mGravity = pastValues.containsKey(KEY_GRAVITY_ARRAY) ? pastValues.getFloatArray(KEY_GRAVITY_ARRAY) : mGravity;
@@ -136,11 +143,14 @@ public class HWSensorEventListener implements SensorEventListener {
 		b.putInt(KEY_GYRO_ACCURACY, mGyroAccuracy);
 		b.putInt(KEY_GYRO_ACCURACY, mGyroAccuracy);
 		b.putInt(KEY_ACCEL_ACCURACY, mAccelAccuracy);
+		
 		b.putInt(KEY_GRAVITY_ACCURACY, mGravityAccuracy);
 		b.putInt(KEY_MAGNETIC_FIELD_ACCURACY, mMagneticFieldAccuracy);
 		b.putInt(KEY_ROTATION_VECTOR_ACCURACY, mRotationVectorAccuracy);
 		
 		b.putLong(KEY_LAST_ACCEL_TIMESTAMP, mLastAccelTimestamp);
+		b.putLong(KEY_LAST_ACT_ACCEL_TIMESTAMP, mLastActAccelTimestamp);
+		
 		b.putLong(KEY_LAST_GYRO_TIMESTAMP, mLastGyroTimestamp);
 		b.putLong(KEY_LAST_GRAVITY_TIMESTAMP, mLastGravityTimestamp);
 		b.putLong(KEY_LAST_MAGNETIC_FIELD_TIMESTAMP, mLastMagneticFieldTimestamp);
@@ -150,12 +160,12 @@ public class HWSensorEventListener implements SensorEventListener {
 		b.putFloatArray(KEY_DISPLACEMENT_ARRAY, mDisplacement);
 		b.putFloatArray(KEY_VELOCITY_ARRAY, mVelocity);
 		b.putFloatArray(KEY_ACCEL_ARRAY, mAccel);
+		b.putFloatArray(KEY_ACT_ACCEL_ARRAY, mActAccel);
 		b.putFloatArray(KEY_ANGULAR_VELOCITY_ARRAY, mAngularVelocity);
 		b.putFloatArray(KEY_ANGLES_ARRAY, mAngles);
 		b.putFloatArray(KEY_GRAVITY_ARRAY, mGravity);
 		b.putFloatArray(KEY_MAGNETIC_FIELD_ARRAY, mMagneticField);
 		b.putFloatArray(KEY_ROTATION_VECTOR_ARRAY, mRotationVector);
-		
 		return b;
 	}
 
@@ -169,6 +179,9 @@ public class HWSensorEventListener implements SensorEventListener {
 		// sensor.getVersion() + "ToString: " + sensor.toString());
 		switch (sensor.getType()) {
 		case Sensor.TYPE_ACCELEROMETER:
+			mAccelAccuracy = accuracy;
+			break;
+		case Sensor.TYPE_LINEAR_ACCELERATION:
 			mAccelAccuracy = accuracy;
 			break;
 		case Sensor.TYPE_GYROSCOPE:
@@ -212,10 +225,27 @@ public class HWSensorEventListener implements SensorEventListener {
 				// updateVelocityAndDisplacement(deltaT);
 				
 				for(IHWSensorEventCallback callback : mCallbacks) {
-					callback.onAccelUpdate(mAccel, deltaT, mLastAccelTimestamp);
+					callback.onLinearAccelUpdate(mAccel, deltaT, mLastAccelTimestamp);
 				}
 				
 				break;
+				
+			case Sensor.TYPE_ACCELEROMETER:
+				if (mLastActAccelTimestamp == 0) {
+					mLastActAccelTimestamp = event.timestamp;
+				}
+				deltaT -= mLastActAccelTimestamp;
+				mLastActAccelTimestamp = event.timestamp;
+				mPrevActAccel = mActAccel;
+				mActAccel = event.values.clone();
+			    // updateTrueAccel();
+				// updateVelocityAndDisplacement(deltaT);
+				
+				for(IHWSensorEventCallback callback : mCallbacks) {
+					callback.onAccelUpdate(mActAccel, deltaT, mLastActAccelTimestamp);
+				}
+				
+				break;	
 			case Sensor.TYPE_GYROSCOPE:
 				if (mLastGyroTimestamp == 0) {
 					mLastGyroTimestamp = event.timestamp;

@@ -29,6 +29,7 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 	private SensorLifecycleManager mSensorLifecycleManager;
 	private int mState;
 	private FileWriter mAccelFileWriter;
+	private FileWriter mLinearAccelFileWriter;
 	private FileWriter mRVFileWriter;
 	private FileWriter mGyroFileWriter;
 	private FileWriter mMagFileWriter;
@@ -40,15 +41,16 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 	}
 	
 	public void start() {
-		
+		mLinearAccelFileWriter = getFile("sLog.linaccel", "csv");
 		mAccelFileWriter = getFile("sLog.accel", "csv");
 		mGyroFileWriter = getFile("sLog.gyro", "csv");
 		mMagFileWriter = getFile("sLog.mag", "csv");
 		mAngleFileWriter = getFile("sLog.angle", "csv");
 		mRVFileWriter = getFile("sLog.RV", "csv");
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_ACCELEROMETER);
+		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_LINEAR_ACCELERATION);
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_ROTATION_VECTOR);
-//	    mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_GYROSCOPE);
+	    mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_GYROSCOPE);
 		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_MAGNETISM);
 //		mSensorLifecycleManager.registerCallback(this, SensorLifecycleManager.SENSOR_GRAVITY);
 	    mState = STARTED;
@@ -58,8 +60,9 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 	public void stop() {
 //		mWifiLock.release();		
 		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_ACCELEROMETER);
+		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_LINEAR_ACCELERATION);
 		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_ROTATION_VECTOR);
-//		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_GYROSCOPE);
+		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_GYROSCOPE);
 		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_MAGNETISM);
 //		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_GRAVITY);
 //		mSensorLifecycleManager.unregisterCallback(this, SensorLifecycleManager.SENSOR_WIFI);
@@ -67,6 +70,9 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 		try {
 			mAccelFileWriter.flush();
 			mAccelFileWriter.close();
+			
+			mLinearAccelFileWriter.flush();
+			mLinearAccelFileWriter.close();
 			
 			mGyroFileWriter.flush();
 	    	mGyroFileWriter.close();
@@ -114,6 +120,11 @@ public class SensorLogger implements IAlgorithm, ISensorCallback {
 	@Override
 	public void onAccelUpdate(float[] values, long deltaT, long timestamp) {
 		persistToFile(mAccelFileWriter, values, deltaT, timestamp);
+	}
+	
+	@Override
+	public void onLinearAccelUpdate(float[] values, long deltaT, long timestamp) {
+		persistToFile(mLinearAccelFileWriter, values, deltaT, timestamp);
 	}
 
 	@Override
