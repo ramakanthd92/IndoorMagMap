@@ -45,7 +45,8 @@ public class ParticleFiltering extends DeadReckoning {
 	   private double [] mTrueMeasurement = {0.0,0.0,0.0};					// Magnetic field in Global co-ordinate system
 	   private float[] mRV = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};	// Rotation Vector for local Rotation method used during each update location call.  
 	   private double[] position  = {0.0,0.0,0.0};						// Magnetic field vector at any position (x,y) of the particles estimated from Interpolation function.
-	   protected MapGenerator magneticmapw,magneticmape,magneticmapz;    // magnetic field map instances for x,y,z axes readings
+	   protected MapGenerator magneticmapwx,magneticmapwy,magneticmapwz;    // magnetic field map instances for x,y,z axes readings
+	   protected MapGenerator magneticmapex,magneticmapey,magneticmapez;
 	   protected Particle[] particles ;// particles
 	   protected Particle[] inside_particles ;
 	   protected Particle[] sortedParticles ;
@@ -127,19 +128,20 @@ public class ParticleFiltering extends DeadReckoning {
     		 	x = x + (step_act* Math.sin(angle));                   // TODO : Use Particles Theta Value Here   // x %= maxX;         																	   // TODO : Use Map Bounds Here 
     			y = y + (step_act* Math.cos(angle));                   // TODO : Use Velocity Dependent step_noise and turn_noise here
     		}
-    	public void SensorErrorModel(double Magnetic_Measurement,double rad_angle)
+    	public void SensorErrorModel(double Magnetic_Measurement[],double rad_angle)
     		{   importance_weight = 1.0;		      
     			if ((x > minX && x < maxX) && (y > minY && y < maxY))
-    				{   position[0] = magneticmapw.f.value(x,y);		// X-axis magnetic field of a particle look up from interpolation function. 
-    					position[1] = magneticmape.f.value(x,y);		// Y-axis magnetic field.
-    			//		position[2] = magneticmapz.f.value(x,y);		// Z-axis magnetic field.    					
-    					if( rad_angle > (-Math.PI/2) && rad_angle < Math.PI/2)
-    						{
-    							importance_weight *= Gaussian(position[0],msenseNoise,Magnetic_Measurement);    						
+    				{   if( rad_angle > (-Math.PI/2) && rad_angle < Math.PI/2)
+    						{   position[0] = magneticmapwx.f.value(x,y);		// X-axis magnetic field of a particle look up from interpolation function. 
+        					    position[1] = magneticmapwy.f.value(x,y);		// Y-axis magnetic field.
+        			    	    position[2] = magneticmapwz.f.value(x,y);		// Z-axis magnetic field.    					
+    							importance_weight *= VectorGaussian(position,msenseNoise,Magnetic_Measurement);    						
     						}
     					else
-    						{
-    							importance_weight *= Gaussian(position[1],msenseNoise,Magnetic_Measurement);  						
+    						{   position[0] = magneticmapex.f.value(x,y);		// X-axis magnetic field of a particle look up from interpolation function. 
+        					    position[1] = magneticmapey.f.value(x,y);		// Y-axis magnetic field.
+        			    	    position[2] = magneticmapez.f.value(x,y);		// Z-axis magnetic field.    					
+    							importance_weight *= VectorGaussian(position,msenseNoise,Magnetic_Measurement);  						
     						}
     			//			Gaussian(position[1],msenseNoise,Magnetic_Measurement[1])*Gaussian(position[2],msenseNoise, Magnetic_Measurement[2]);
     			//			importance_weight = kin*VectorGaussian(position, msenseNoise, Magnetic_Measurement); 
@@ -167,10 +169,18 @@ public class ParticleFiltering extends DeadReckoning {
 	//TODO: Incorporate the Barcode Scanner to identify the path way.
 	 	    String json_obj_0 = loadJSONFromAsset(ctx,"data-west-6.json");
 		    String json_obj_1 = loadJSONFromAsset(ctx,"data-east-6.json");
-    		magneticmapw = new MapGenerator(json_obj_0, 17,3);
- 			magneticmape = new MapGenerator(json_obj_1, 17,3);
-			magneticmapw.run();
-	        magneticmape.run();	       
+    		magneticmapwx = new MapGenerator(json_obj_0, 17,0);
+    		magneticmapwy = new MapGenerator(json_obj_0, 17,1);
+    		magneticmapwz = new MapGenerator(json_obj_0, 17,2);
+ 			magneticmapex = new MapGenerator(json_obj_1, 17,0);
+ 			magneticmapey = new MapGenerator(json_obj_1, 17,1);
+ 			magneticmapez = new MapGenerator(json_obj_1, 17,2);
+			magneticmapwx.run();
+			magneticmapwy.run();
+			magneticmapwz.run();
+	        magneticmapex.run();
+	        magneticmapey.run();
+	        magneticmapez.run();
 		}
 	
 		/**
@@ -242,7 +252,7 @@ public class ParticleFiltering extends DeadReckoning {
             Matrix exp_term_2  = exp_term.times(Z_MU.transpose());   
         //    Log.e(TAG,"Rnorm = " + String.valueOf(Rnorm));
         //    Log.e(TAG,"exp_term_2 = " + String.valueOf(exp_term_2.det()));              
-	        return Math.exp(- 0.5 * exp_term_2.det())/(Math.sqrt(Rnorm)*cons);
+	        return Math.exp(- 0.5 * exp_term_2.det())/(Math.sqrt(Rnorm)*cons) + 0.0001;
 	   }
 	  
 	   /**  init for the particle filter. Initialising the particles and weights CDF
@@ -324,7 +334,7 @@ public class ParticleFiltering extends DeadReckoning {
 			for (int i = 0 ; i< len; i++) {
 		     	next[i] = selectParticleAndCopy();
 				next[i].move(step_size,rad_angle);                        // TODO: Should order move and sense			
-				next[i].SensorErrorModel(magnitude,rad_angle);
+				next[i].SensorErrorModel(measurement,rad_angle);
 	//			System.out.println(magnitude);
 				orien += angle ;				
 			}			
