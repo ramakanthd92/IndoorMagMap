@@ -20,7 +20,7 @@ import android.util.Log;
 public class ParticleFiltering extends DeadReckoning {
 	   //constants
        private static final String TAG = "PaicleFilterReckoning";
-	   public static final int DEFAULT_PARTICLE_COUNT = 2000; //1000 //2000
+	   public static final int DEFAULT_PARTICLE_COUNT = 500; //1000 //2000
 	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 260; // 400  //600 //800 //1000 //1500 
 	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 2500; //2000 //10000  //15000
 	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 60; //2000 //10000  //15000
@@ -38,10 +38,11 @@ public class ParticleFiltering extends DeadReckoning {
 	  // private static final double yoffset = -0.0999689574027;
 	   
 	   //Instance variables
+	   private double sigma_2 = Math.pow(msenseNoise, 2.0);
 	   private static final Random rand = RandomSingleton.instance;
 	   private double[]  measurement  = {0.0,0.0,0.0};					// Magnetic field in Device Co-ordinate system
 	   private double orien  = 0.0;
-	   private double[][] R = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};	      // Co-variance Matrix for Vector Gaussian
+	   private double[][] R = {{sigma_2,0.0,0.0},{0.0,sigma_2,0.0},{0.0,0.0,sigma_2}};	      // Co-variance Matrix for Vector Gaussian
 	   private double [] mTrueMeasurement = {0.0,0.0,0.0};					// Magnetic field in Global co-ordinate system
 	   private float[] mRV = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};	// Rotation Vector for local Rotation method used during each update location call.  
 	   private double[] position  = {0.0,0.0,0.0};						// Magnetic field vector at any position (x,y) of the particles estimated from Interpolation function.
@@ -53,6 +54,11 @@ public class ParticleFiltering extends DeadReckoning {
 	   protected double[] weightSums ;									// CDF of importance weights
 	   private double magnitude;										 // magnitude to be written to Magnetic field log.
 	   private double angle;
+	   private  Matrix RM = new Matrix(R);
+	   private double[][] MU_ARR = {{0.f,0.f,0.f}};
+       private double[][] Z_ARR = {{0.f,0.f,0.f}};
+      
+       private  Matrix Rinv = RM.inverse();
 	   //Control parameters 
 	   private static int particleCount = DEFAULT_PARTICLE_COUNT;       
 	   private static double msenseNoise = DEFAULT_SENSE_NOISE_THRESHOLD/1000.f;    // Step Noise for the particles used in dynamical equation.  Reduce this to a mimimum to reduce error in path length.  
@@ -131,21 +137,18 @@ public class ParticleFiltering extends DeadReckoning {
     	public void SensorErrorModel(double Magnetic_Measurement[],double rad_angle)
     		{   importance_weight = 1.0;		      
     			if ((x > minX && x < maxX) && (y > minY && y < maxY))
-    				{   if( rad_angle > (-Math.PI/2) && rad_angle < Math.PI/2)
-    						{   position[0] = magneticmapwx.f.value(x,y);		// X-axis magnetic field of a particle look up from interpolation function. 
-        					    position[1] = magneticmapwy.f.value(x,y);		// Y-axis magnetic field.
-        			    	    position[2] = magneticmapwz.f.value(x,y);		// Z-axis magnetic field.    					
-    							importance_weight *= VectorGaussian(position,msenseNoise,Magnetic_Measurement);    						
-    						}
-    					else
+    				{   if(rad_angle < (-3*Math.PI/4) || rad_angle > 3*Math.PI/4)
     						{   position[0] = magneticmapex.f.value(x,y);		// X-axis magnetic field of a particle look up from interpolation function. 
         					    position[1] = magneticmapey.f.value(x,y);		// Y-axis magnetic field.
         			    	    position[2] = magneticmapez.f.value(x,y);		// Z-axis magnetic field.    					
+    							importance_weight *= VectorGaussian(position,msenseNoise,Magnetic_Measurement);    						
+    						}
+    					else
+    						{   position[0] = magneticmapwx.f.value(x,y);		// X-axis magnetic field of a particle look up from interpolation function. 
+        					    position[1] = magneticmapwy.f.value(x,y);		// Y-axis magnetic field.
+        			    	    position[2] = magneticmapwz.f.value(x,y);		// Z-axis magnetic field.    					
     							importance_weight *= VectorGaussian(position,msenseNoise,Magnetic_Measurement);  						
     						}
-    			//			Gaussian(position[1],msenseNoise,Magnetic_Measurement[1])*Gaussian(position[2],msenseNoise, Magnetic_Measurement[2]);
-    			//			importance_weight = kin*VectorGaussian(position, msenseNoise, Magnetic_Measurement); 
-    			//			Importance weight of the particle after measurement.    			    	    			    	
     				}  
     			else 
     				{ 	importance_weight = prb;
@@ -232,27 +235,19 @@ public class ParticleFiltering extends DeadReckoning {
 	    */
 	   
 	   public double VectorGaussian(double[] mu,double sigma,double[] x)
-	   {    double sigma_2 = Math.pow(sigma, 2.0);
-		    R[0][0] = sigma_2; 
-	        R[1][1] = sigma_2;
-	        R[2][2] = sigma_2;  
-	        Matrix RM = new Matrix(R);
-	        Matrix Rinv = RM.inverse();
-	        double MU_ARR[][] = {{mu[0],mu[1],mu[2]}};
-	        double Z_ARR[][] = {{x[0],x[1],x[2]}};
-	        Matrix MU = new Matrix(MU_ARR);
-	        Matrix Z = new Matrix(Z_ARR);
-	        double Rnorm = RM.det();
-	        Matrix Z_MU = Z.minus(MU); 	   
-	    //    Log.e(TAG,"Tmeas[0] = " + String.valueOf(x[0]) + "posi[1] = " + String.valueOf(x[1]) + "posi[2] = " + String.valueOf(x[2]));
-	    //    Log.e(TAG,"posi[0] = " + String.valueOf(mu[0]) + "meas[1] = " + String.valueOf(mu[1]) + "meas[2] = " + String.valueOf(mu[2])); 
-	    //    Log.e(TAG,"Z_MU[0] = " + String.valueOf(x[0] - mu[0])+"Z_MU[1] = " + String.valueOf(x[1] - mu[1]) + "Z_MU[2] = " + String.valueOf(x[2] - mu[2]));
-	    //    Log.e(TAG,"Rinv= " + String.valueOf(Rinv.det()));  
-            Matrix exp_term = Z_MU.times(Rinv);
-            Matrix exp_term_2  = exp_term.times(Z_MU.transpose());   
-        //    Log.e(TAG,"Rnorm = " + String.valueOf(Rnorm));
-        //    Log.e(TAG,"exp_term_2 = " + String.valueOf(exp_term_2.det()));              
-	        return Math.exp(- 0.5 * exp_term_2.det())/(Math.sqrt(Rnorm)*cons) + 0.0001;
+	   {    MU_ARR[0][0] = mu[0];
+			MU_ARR[0][1] = mu[1];
+		    MU_ARR[0][2] = mu[2];
+		    Z_ARR[0][0] = x[0];
+			Z_ARR[0][1] = x[1];
+		    Z_ARR[0][2] = x[2];
+		    Matrix MU = new Matrix(MU_ARR);
+	        Matrix Z = new Matrix(Z_ARR);	   
+	    //  double Rnorm = RM.det();
+	        MU = Z.minus(MU); 	   
+	        Matrix exp_term = MU.times(Rinv);
+            Matrix exp_term_2  = exp_term.times(MU.transpose());   
+            return Math.exp(- 0.5 * exp_term_2.det()) + 0.0001;
 	   }
 	  
 	   /**  init for the particle filter. Initialising the particles and weights CDF
@@ -312,8 +307,11 @@ public class ParticleFiltering extends DeadReckoning {
 			System.out.println("update");
 			Particle[] next = new Particle[particles.length];
 			len = particles.length;
+			
 	//		mRV = mSensorLifecycleManager.getRotationMatrix();						
-	//		updateTrueMag();
+			
+			updateTrueMag(rad_angle);
+			
 			orien = 0.0;
 			int inside_len = 0;
 			for (int i = 0 ; i< len; i++)
@@ -321,6 +319,7 @@ public class ParticleFiltering extends DeadReckoning {
 				{ inside_len++ ; 				
 				}
 			}	
+			
 			if(inside_len != 0)
 			{  inside_particles = new Particle[inside_len];
 				int j = 0;
@@ -331,10 +330,11 @@ public class ParticleFiltering extends DeadReckoning {
 					}
 				}
 			}
+			
 			for (int i = 0 ; i< len; i++) {
 		     	next[i] = selectParticleAndCopy();
 				next[i].move(step_size,rad_angle);                        // TODO: Should order move and sense			
-				next[i].SensorErrorModel(measurement,rad_angle);
+				next[i].SensorErrorModel(mTrueMeasurement,rad_angle);
 	//			System.out.println(magnitude);
 				orien += angle ;				
 			}			
@@ -361,8 +361,6 @@ public class ParticleFiltering extends DeadReckoning {
 		 */
 		private Particle selectParticleAndCopy() {
 			sel = rand.nextDouble();
-		  // System.out.println(inside_particles.length);
-		  // System.out.println(weightSums.length);
 			index = Arrays.binarySearch(weightSums,0,inside_particles.length,sel);
 			if (index < 0) {
 				index = - (index + 1);
@@ -511,21 +509,29 @@ public class ParticleFiltering extends DeadReckoning {
 		
 		/** The True Magnetic field magnitude inGlobal co-ordinate system is calculated from Rotation Matrix obtained from Sensor life cycle manager. 
 		 */
-		private void updateTrueMag() {
-		//	Log.e(TAG,"measurement[0]= " + String.valueOf(measurement[0]));
-		//	Log.e(TAG,"measurement[1]= " + String.valueOf(measurement[1]));
-		//	Log.e(TAG,"measurement[2]= " + String.valueOf(measurement[2])); 
-		      
-			mTrueMeasurement[0] = mRV[0] * measurement[0] + mRV[1] * measurement[1] + mRV[2] * measurement[2];
-			mTrueMeasurement[1] = mRV[3] * measurement[0] + mRV[4] * measurement[1] + mRV[5] * measurement[2];
-			mTrueMeasurement[2] = mRV[6] * measurement[0] + mRV[7] * measurement[1] + mRV[8] * measurement[2];
-			
-		//	Log.e(TAG,"TrueMeasurement[0]= " + String.valueOf(mTrueMeasurement[0]));
-		//	Log.e(TAG,"TureMeasurement[1]= " + String.valueOf(mTrueMeasurement[1]));
-		//	Log.e(TAG,"TrueMeasurement[2]= " + String.valueOf(mTrueMeasurement[2])); 
-
+		private void updateTrueMag(double rad_angle) {
+			if((rad_angle > Math.PI/4 && rad_angle < 3*Math.PI/4) || (rad_angle < -Math.PI/4 && rad_angle > -3*Math.PI/4))
+			{   mRV[0] = 2*(q0*q0 + q1*q1)-1;     mRV[1] = 2*(q1*q2 + q0*q3);    mRV[2] = 2*(q1*q3 - q0*q2);
+				mRV[3] = 2*(q1*q2 - q0*q3);       mRV[4] = 2*(q0*q0 + q2*q2)-1;  mRV[5] = 2*(q2*q3 + q0*q1);
+				mRV[6] = 2*(q1*q3 + q0*q2);       mRV[7] = 2*(q2*q3 - q0*q1);    mRV[8] = 2*(q0*q0 + q3*q3)-1;
+		    
+				mTrueMeasurement[0] = mRV[0] * measurement[0] + mRV[1] * measurement[1] + mRV[2] * measurement[2];
+				mTrueMeasurement[1] = mRV[3] * measurement[0] + mRV[4] * measurement[1] + mRV[5] * measurement[2];
+				mTrueMeasurement[2] = mRV[6] * measurement[0] + mRV[7] * measurement[1] + mRV[8] * measurement[2];	
+				System.out.print(measurement[0]);
+				System.out.println(mTrueMeasurement[0]);
+				System.out.print(measurement[1]);
+				System.out.println(mTrueMeasurement[1]);
+				System.out.print(measurement[2]);
+				System.out.println(mTrueMeasurement[2]);
+		     }
+			else 
+			{   mTrueMeasurement[0] = measurement[0];
+				mTrueMeasurement[1] = measurement[1];
+			    mTrueMeasurement[2] = measurement[2];
+			}
 		}
-				
+		
 		public int size() {
 			return particles.length;
 		}
@@ -635,48 +641,4 @@ public class ParticleFiltering extends DeadReckoning {
 		public double getMMSE() {
 			return  mmse;
 		}
-		
-	
-	/* private static final Comparator mapFitness = new Comparator() {
-			/** 
-			 * Fitness is an approximation of p(z|x,z,m)
-			 * Larger values are better.
-			 * Values are normalized and selection using monte-carlo selection.
-			 */
-		/*	public int compare(Object o1, Object o2) {
-				Particle map1 = (Particle) o1;
-				Particle map2 = (Particle) o2;
-				if (map1.importance_weight < map2.importance_weight) {
-					return -1;
-				} else if (map1.importance_weight > map2.importance_weight) {
-					return 1;
-				} else {
-					return 0;
-				}
-			}
-		};
-
-		private void sortParticles() {
-		//	System.out.println(particles.length);
-			sortedParticles = new Particle[inside_particles.length];
-			System.arraycopy(inside_particles, 0, sortedParticles, 0, inside_particles.length);
-//			 sortedParticles = (LandmarkMap[])particles.clone();
-			Arrays.sort(sortedParticles, particleFitnessComparator);
-			//System.out.println(particles.length);
-			//System.out.println(weightSums.length);
-			//System.out.println(sortedParticles.length);
-			
-		}
-	
-		private static final Comparator<Particle> particleFitnessComparator = new Comparator<Particle>() {
-			public int compare(Particle o1, Particle o2) {
-				double w1 = o1.importance_weight;
-				double w2 = o2.importance_weight;
-				if( w1 == w2 ) return 0;
-				return (w1 < w2)?1:-1;
-			}
-		};
-      */
-		
-}
-;
+};

@@ -72,7 +72,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
      private boolean positionInitialised = false;
      
      private static float beta = 0.075f;
- 	 private float q0, q1, q2, q3 ;
+ 	 protected float q0, q1, q2, q3 ;
  	//private float sampleFreq = 512.0f ;	    // sample frequency in Hz
  	 private SensorManager mSensorManager;
  	 private long old_time_stamp = 0;  	
