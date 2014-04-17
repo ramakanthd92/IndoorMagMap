@@ -38,9 +38,8 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	private float mLocation[];
 	protected float mTrainingConstant = DEFAULT_TRAINING_CONSTANT/1000.f;
 	protected float mAccelThreshold = DEFAULT_ACCEL_THRESHOLD/1000.f;
-	private float mStartX; // on a 0-1 scale based on the map
+	private float mStartX; 
 	private float mStartY;
-	private boolean initState = true;
 	private int mMapWidth = DEFAULT_MAP_WIDTH;
 	private int mMapHeight = DEFAULT_MAP_HEIGHT;
 	
@@ -58,36 +57,21 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	protected boolean mIsLogging;
 	protected FileWriter mAccelLogFileWriter;
 	protected FileWriter mStepLogFileWriter;
- 
-	
-	 private static final float NS2S = 1.0f / 1000000000.0f;
-	 private float [] deltaQuaternion = {0.f,0.f,0.f,0.f};
-     private float[] gyroMatrix = new float[9];
-     private float[] rotationMatrix = new float[9];     
-     private float[] RVOrientation = {0.f,0.f,0.f};
+
+	private static final float NS2S = 1.0f / 1000000000.0f;
+	private float[] rotationMatrix = new float[9];     
+    private float[] RVOrientation = {0.f,0.f,0.f};
     
-     private static final double EPSILON = 0.1f;
-     private double gyroscopeRotationVelocity = 0;	    
-     private static float[] gyroAngle = {0.f,0.f,0.f};
-     private boolean positionInitialised = false;
-     
-     private static float beta = 0.075f;
- 	 protected float q0, q1, q2, q3 ;
- 	//private float sampleFreq = 512.0f ;	    // sample frequency in Hz
- 	 private SensorManager mSensorManager;
- 	 private long old_time_stamp = 0;  	
-     private float[] gyroOri = new float[3];
- 	 private double prevAngle;  
- 	// angular speeds from gyro
-     private float[] gyro = new float[3];
-     // magnetic field vector
-     private float[] magnet = new float[3];
-     // accelerometer vector
-     private float[] accel = new float[3];
-     
-    private String location;
- 	private long mLastGyroTimestamp= 0;
- 	
+    private static float beta = 0.075f;
+ 	protected double q0, q1, q2, q3 ;
+ 	private float[] gyroOri = new float[3];
+ 	private double prevAngle;  
+ 	private boolean initState = true;
+    private float[] gyro = new float[3];
+    private float[] magnet = new float[3];
+    private float[] accel = new float[3];
+    private AHRS ahrs_algo = new AHRS(); 
+      	
      public DeadReckoning(Context ctx) {
 		init();		
 		mSensorLifecycleManager = SensorLifecycleManager.getInstance(ctx);
@@ -144,7 +128,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 						double stepSize = getStepSize();
 						double radAngle = getAngleRadians();
 						
-						double offset = Math.toRadians(5); // 10 degree offset because of map
+						double offset = Math.toRadians(5); // 5 degree offset because of map
 						radAngle -= offset;
 						if(radAngle < -Math.PI)
 							radAngle += 2*Math.PI;
@@ -163,16 +147,11 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 								throw new RuntimeException(e);
 							}
 						}
-
-						// TODO Remove this offset!
-					//	double offset = Math.toRadians(85); // 85 degree offset because of map
-					//	radAngle += offset;
 						
 						if(radAngle < -Math.PI)
 							radAngle += 2*Math.PI;
-						// Expected to set the new location of the person
 						updateLocation(stepSize,radAngle,turnAngle);
-						
+
 						initState = true;		
 						synchronized(mPath) {
 							mPath.add(new float[] { mLocation[0], mLocation[1], (float)radAngle});
@@ -202,19 +181,8 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 		System.arraycopy(values,0,accel,0,3);
 	}
 
-	/* TODO Dead code. Remove if not needed 2 versions later.
-	 * 
-	 *  private double getAccelMagnitude(float[] rawAccel) {
-		double netAccel = Math.sqrt(rawAccel[0]*rawAccel[0] + rawAccel[1]*rawAccel[1] + rawAccel[2]*rawAccel[2]);
-		return netAccel;
-	} */
-
 	protected void updateLocation(double stepSize, double radAngle,double turnAngle) {
-	/*	System.out.println("rad_ang" + String.valueOf(radAngle));
-		System.out.println("step_size" + String.valueOf(stepSize));
-		System.out.println("X" + String.valueOf(mLocation[0]));
-		System.out.println("Y" + String.valueOf(mLocation[1]));
-	*/	mLocation[0] += Math.sin(radAngle)*stepSize;
+		mLocation[0] += Math.sin(radAngle)*stepSize;
 		mLocation[1] += Math.cos(radAngle)*stepSize; // negative sign due to image coordinate system v/s True North angle
 	}
 
@@ -243,74 +211,11 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	@Override
 	public void onGyroUpdate(float[] values, long deltaT, long timestamp) {
 		 System.arraycopy(values,0,gyro,0,3);
-		 MadgwickAHRSupdate(gyro[0],gyro[1],gyro[2],accel[0],accel[1],accel[2],magnet[0],magnet[1],magnet[2],deltaT*NS2S);							  
-		/*if(initState)
-	      {     gyroAngle[0] = 0.0f;
-	      		gyroAngle[1] = 0.0f;
-	      		gyroAngle[2] = 0.0f;
-
-	        // initialise gyroMatrix with identity matrix
-	      		gyroMatrix[0] = 1.0f; gyroMatrix[1] = 0.0f; gyroMatrix[2] = 0.0f;
-	      		gyroMatrix[3] = 0.0f; gyroMatrix[4] = 1.0f; gyroMatrix[5] = 0.0f;
-	      		gyroMatrix[6] = 0.0f; gyroMatrix[7] = 0.0f; gyroMatrix[8] = 1.0f;
-	    	    initState = false; 
-	      }
-		  if (timestamp != 0) {
-                final float dT = (deltaT) * NS2S;
-                // Axis of the rotation sample, not normalized yet.
-                float axisX = values[0];
-                float axisY = values[1];
-                float axisZ = values[2];
-
-                // Calculate the angular speed of the sample
-                gyroscopeRotationVelocity = Math.sqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
-
-                // Normalize the rotation vector if it's big enough to get the axis
-                if (gyroscopeRotationVelocity > EPSILON) {
-                    axisX /= gyroscopeRotationVelocity;
-                    axisY /= gyroscopeRotationVelocity;
-                    axisZ /= gyroscopeRotationVelocity;
-                }
-
-                // Integrate around this axis with the angular speed by the timestep
-                // in order to get a delta rotation from this sample over the timestep
-                // We will convert this axis-angle representation of the delta rotation
-                // into a quaternion before turning it into the rotation matrix.
-                double thetaOverTwo = gyroscopeRotationVelocity * dT / 2.0f;
-                double sinThetaOverTwo = Math.sin(thetaOverTwo);
-                double cosThetaOverTwo = Math.cos(thetaOverTwo);
-                deltaQuaternion[0] = (float) (sinThetaOverTwo * axisX);
-                deltaQuaternion[1] = (float) (sinThetaOverTwo * axisY);
-                deltaQuaternion[2] = (float) (sinThetaOverTwo * axisZ);
-                deltaQuaternion[3] = (float) cosThetaOverTwo;
-               // Set the rotation matrix as well to have both representations
-                
-                float[] deltaRotationMatrix = new float[9];
-                SensorManager.getRotationMatrixFromVector(deltaRotationMatrix, deltaQuaternion);
-                gyroMatrix = matrixMultiplication(gyroMatrix, deltaRotationMatrix);
-                SensorManager.getOrientation(gyroMatrix, gyroAngle);
-	        }
-	        */
+		 ahrs_algo.update(gyro[0],gyro[1],gyro[2],accel[0],accel[1],accel[2],magnet[0],magnet[1],magnet[2],deltaT*NS2S);	
+	     getAngleGD();	 
 	}
 	
-	 private float[] matrixMultiplication(float[] A, float[] B) {
-	        float[] result = new float[9];
-	     
-	        result[0] = A[0] * B[0] + A[1] * B[3] + A[2] * B[6];
-	        result[1] = A[0] * B[1] + A[1] * B[4] + A[2] * B[7];
-	        result[2] = A[0] * B[2] + A[1] * B[5] + A[2] * B[8];
-	     
-	        result[3] = A[3] * B[0] + A[4] * B[3] + A[5] * B[6];
-	        result[4] = A[3] * B[1] + A[4] * B[4] + A[5] * B[7];
-	        result[5] = A[3] * B[2] + A[4] * B[5] + A[5] * B[8];
-	     
-	        result[6] = A[6] * B[0] + A[7] * B[3] + A[8] * B[6];
-	        result[7] = A[6] * B[1] + A[7] * B[4] + A[8] * B[7];
-	        result[8] = A[6] * B[2] + A[7] * B[5] + A[8] * B[8];
-	     
-	        return result;
-	        
-	    }/* (non-Javadoc)
+	/* (non-Javadoc)
 	 * @see in.ernet.iitr.divyeuec.algorithms.IReckoningMethod#setStepDisplacement(float[])
 	 */
 	@Override
@@ -629,7 +534,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 		}
 	}
 
-	void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz,float deltaT) {		
+	/* void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz,float deltaT) {		
 		float recipNorm;
 		float s0, s1, s2, s3;
 		float qDot1, qDot2, qDot3, qDot4;
@@ -798,9 +703,10 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 		q3 *= recipNorm;
 		getAngleGD();
 	}
-
+*/
 	public void getAngleGD()
-	{  gyroOri[0] = (float) ((Math.atan2(2.0 * (q1*q2 - q0*q3),(2*(q0*q0 + q1*q1)-1))));          
+	{  q0 = ahrs_algo.SEq_1;  q1 = ahrs_algo.SEq_2;  q2 = ahrs_algo.SEq_3; q3 = ahrs_algo.SEq_4;
+	   gyroOri[0] = (float) ((Math.atan2(2.0 * (q1*q2 - q0*q3),(2*(q0*q0 + q1*q1)-1))));          
        gyroOri[1] = (float) (Math.asin(-2.0 * (q1*q3 + q0*q2)));
        gyroOri[2] = (float) ((Math.atan2(2.0 * (q2*q3 - q0*q1),(2*(q0*q0 + q3*q3)-1)))); 
 	}
