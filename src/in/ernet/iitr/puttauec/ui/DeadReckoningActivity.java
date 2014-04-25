@@ -23,13 +23,10 @@ import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.PowerManager;
-import android.os.PowerManager.WakeLock;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.webkit.WebView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -60,9 +57,7 @@ public class DeadReckoningActivity extends Activity {
 	private static final String KEY_VERSION = "Version";
 	private static final int MIN_QRCODE_VERSION = 0x1;
 	
-	private WebView mWebView;
 	private IReckoningMethod mDeadReckoning;
-	private WakeLock mWakeLock;
 	private Intent intent;
 	
 	@Override

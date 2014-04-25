@@ -1,46 +1,33 @@
 package in.ernet.iitr.puttauec.sensorutil;
 //------------------------------------------------------------------------
-//
 //Author      : Anas Abidi
 //Date        : 18 Dec 2004
 //Version     : 2.0
-//Description : Matrix Operations Library
-//
+//Description : MatrixLib Operations Library
 //------------------------------------------------------------------------	
-public class MatrixLib
-{	
-    /// <summary>
-	/// Matrix Library .Net v2.0 By Anas Abidi, 2004.
-	/// 
-	/// The Matrix Library contains Class Matrix which provides many 
-	/// static methods for making various matrix operations on objects
-	/// derived from the class or on arrays defined as double. The 
-	/// '+','-','*' operators are overloaded to work with the objects
-	/// derived from the matrix class.
-	/// </summary>
-	public class Matrix
+ public class MatrixLib
 	{   private final int M;
 	    private final int N;
-		private double[][] in_Mat;
+		public double[][] in_Mat;
       
 		/// <summary>
-		/// Matrix object constructor, constructs an empty
+		/// MatrixLib object constructor, constructs an empty
 		/// matrix with dimensions: rows = noRows and cols = noCols.
 		/// </summary>
 		/// <param name="noRows"> no. of rows in this matrix </param>
 		/// <param name="noCols"> no. of columns in this matrix</param>
-		public Matrix(int noRows, int noCols)
+		public MatrixLib(int noRows, int noCols)
 		{   M = noRows;
 		    N=  noCols;		 
 			this.in_Mat = new double[noRows][noCols];
 		}
 
 		/// <summary>
-		/// Matrix object constructor, constructs a matrix from an
+		/// MatrixLib object constructor, constructs a matrix from an
 		/// already defined array object.
 		/// </summary>
 		/// <param name="Mat">the array the matrix will contain</param>
-		public Matrix(double [][] Mat)
+		 public MatrixLib(double [][] Mat)
 		{   M = Mat.length;
 		    N = Mat[0].length;
 			this.in_Mat = new double[M][N];
@@ -50,7 +37,7 @@ public class MatrixLib
 		}
 
 		// copy constructor
-	    private Matrix(Matrix A) { this(A.in_Mat);}
+	    private MatrixLib(MatrixLib A) { this(A.in_Mat);}
 
 		/// <summary>
 		/// Returns the 2D form of a 1D array. i.e. array with
@@ -61,7 +48,7 @@ public class MatrixLib
 		/// the array to convert, with dimesion [n] 
 		/// </param>
 		/// <returns> the same array but with [n,1] dimension </returns>
-		public double[][] OneD_2_TwoD (double[] Mat)
+		 public static double[][] OneD_2_TwoD (double[] Mat)
 		{
 			int Rows;
 			//Find The dimensions !!
@@ -84,7 +71,7 @@ public class MatrixLib
 		/// the array to convert, with dimesions [n,1] 
 		/// </param>
 		/// <returns>the same array but with [n] dimension</returns>
-		public double[] TwoD_2_OneD(double[][] Mat)
+		 public static double[] TwoD_2_OneD(double[][] Mat)
 		{
 			int Rows;
 			int Cols;
@@ -104,8 +91,8 @@ public class MatrixLib
 		/// Returns an Identity matrix with dimensions [n,n] in the from of an array.
 		/// </summary>
 		/// <param name="n">the no. of rows or no. cols in the matrix</param>
-		/// <returns>An identity Matrix with dimensions [n,n] in the form of an array</returns>
-		public double[][] Identity(int n)
+		/// <returns>An identity MatrixLib with dimensions [n,n] in the form of an array</returns>
+		 public static double[][] Identity(int n)
 		{
 			double[][] temp = new double[n][n];
 			for (int i=0; i<n;i++) temp[i][i] = 1;
@@ -120,7 +107,7 @@ public class MatrixLib
 		/// <param name="Mat1">First array in the summation</param>
 		/// <param name="Mat2">Second array in the summation</param>
 		/// <returns>Sum of Mat1 and Mat2 as an array</returns>
-		public double[][] Add(double[][] Mat1, double[][] Mat2)
+		 public static double[][] Add(double[][] Mat1, double[][] Mat2)
 		{ 
 			double[][] sol;
 			int i,j;
@@ -149,9 +136,9 @@ public class MatrixLib
 		/// </summary>
 		/// <param name="Mat1">First matrix in the summation</param>
 		/// <param name="Mat2">Second matrix in the summation</param>
-		/// <returns>Sum of Mat1 and Mat2 as a Matrix object</returns>
-		public Matrix Add(Matrix Mat1, Matrix Mat2)
-		  {return new Matrix(Add(Mat1.in_Mat,Mat2.in_Mat));}
+		/// <returns>Sum of Mat1 and Mat2 as a MatrixLib object</returns>
+		 public static MatrixLib Add(MatrixLib Mat1, MatrixLib Mat2)
+		  {return new MatrixLib(Add(Mat1.in_Mat,Mat2.in_Mat));}
 
       
 		/// <summary>
@@ -162,7 +149,7 @@ public class MatrixLib
 		/// <param name="Mat1">First array in the subtraction</param>
 		/// <param name="Mat2">Second array in the subtraction</param>
 		/// <returns>Difference of Mat1 and Mat2 as an array</returns>
-		public double[][] Subtract(double[][] Mat1, double[][] Mat2)
+		 public static double[][] Subtract(double[][] Mat1, double[][] Mat2)
 		{ 
 			double[][] sol;
 			int i,j;
@@ -192,9 +179,9 @@ public class MatrixLib
 		/// </summary>
 		/// <param name="Mat1">First matrix in the subtraction</param>
 		/// <param name="Mat2">Second matrix in the subtraction</param>
-		/// <returns>Difference of Mat1 and Mat2 as a Matrix object</returns>
-		public Matrix Subtract(Matrix Mat1, Matrix Mat2)
-		{return new Matrix(Subtract(Mat1.in_Mat,Mat2.in_Mat));}
+		/// <returns>Difference of Mat1 and Mat2 as a MatrixLib object</returns>
+		 public static MatrixLib Subtract(MatrixLib Mat1, MatrixLib Mat2)
+		{return new MatrixLib(Subtract(Mat1.in_Mat,Mat2.in_Mat));}
 
 		/// <summary>
 		/// Returns the multiplication of two matrices with compatible 
@@ -204,7 +191,7 @@ public class MatrixLib
 		/// <param name="Mat1">First array in multiplication</param>
 		/// <param name="Mat2">Second array in multiplication</param>
 		/// <returns>Mat1 multiplied by Mat2 as an array</returns>
-		public double[][] Multiply(double[][] Mat1, double[][] Mat2)
+		 public static double[][] Multiply(double[][] Mat1, double[][] Mat2)
 		{
 			double[][] sol;
 			int Rows1, Cols1;
@@ -216,7 +203,7 @@ public class MatrixLib
             Rows2 = Mat2.length;
             Cols2 = Mat2[0].length;
 				
-			if (Cols1 != Rows2) throw new RuntimeException("Illegal Matrix Multiplication");
+			if (Cols1 != Rows2) throw new RuntimeException("Illegal MatrixLib Multiplication");
 
 			sol = new double[Rows1][Cols1];
 
@@ -245,14 +232,14 @@ public class MatrixLib
 		/// Second matrix or vector (i.e: dimension [3,1]) object in 
 		/// multiplication
 		/// </param>
-		/// <returns>Mat1 multiplied by Mat2 as a Matrix object</returns>
-		public Matrix Multiply(Matrix Mat1, Matrix Mat2)
+		/// <returns>Mat1 multiplied by Mat2 as a MatrixLib object</returns>
+		 public static MatrixLib Multiply(MatrixLib Mat1, MatrixLib Mat2)
 		{
 			if ((Mat1.M==3) && (Mat2.M==3) &&
 				(Mat1.N==1) && (Mat2.N==1)) 
-			{return new Matrix(CrossProduct(Mat1.in_Mat,Mat2.in_Mat));}
+			{return new MatrixLib(CrossProduct(Mat1.in_Mat,Mat2.in_Mat));}
 			else
-			{return new Matrix(Multiply(Mat1.in_Mat,Mat2.in_Mat));}
+			{return new MatrixLib(Multiply(Mat1.in_Mat,Mat2.in_Mat));}
 		}
 
 		/// <summary>
@@ -263,7 +250,7 @@ public class MatrixLib
 		/// Array with [n,n] dimension whose determinant is to be found
 		/// </param>
 		/// <returns>Determinant of the array</returns>
-		public double Det(double[][] Mat)
+		 public static double Det(double[][] Mat)
 		{    
 			int S,k, k1, i,j;
 			double save, ArrayK, tmpDet;
@@ -286,7 +273,7 @@ public class MatrixLib
 					if (Mat[k][j] == 0) return 0;
 					else
 					{   
-						for (i = k; i <= S; i++)
+						for (i = k; i < S; i++)
 						{
 							save = Mat[i][j];
 							Mat[i][j] = Mat[i][k];
@@ -300,9 +287,9 @@ public class MatrixLib
 				if (k < S) 
 				{
 					k1 = k + 1;
-					for (i = k1; i <= S; i++)
+					for (i = k1; i < S; i++)
 					{ 
-						for (j = k1; j <= S; j++) 
+						for (j = k1; j < S; j++) 
 							Mat[i][j] = Mat[i][j] - Mat[i][k] * (Mat[k][j] / ArrayK);
 					}
 				}
@@ -315,10 +302,10 @@ public class MatrixLib
 		/// In case of an error the error is raised as an exception. 
 		/// </summary>
 		/// <param name="Mat">
-		/// Matrix object with [n,n] dimension whose determinant is to be found
+		/// MatrixLib object with [n,n] dimension whose determinant is to be found
 		/// </param>
-		/// <returns>Determinant of the Matrix object</returns>
-		public double Det(Matrix Mat)
+		/// <returns>Determinant of the MatrixLib object</returns>
+		 public static double Det(MatrixLib Mat)
 		{return Det(Mat.in_Mat);}
 	
 		
@@ -331,7 +318,7 @@ public class MatrixLib
 		/// Array with [n,n] dimension whose inverse is to be found
 		/// </param>
 		/// <returns>Inverse of the array as an array</returns>
-		public double[][] Inverse(double[][] Mat)
+		 public static double[][] Inverse(double[][] Mat)
 		{
 			double[][] AI, Mat1;
 			double AIN, AF;
@@ -344,7 +331,7 @@ public class MatrixLib
 			       Mat1[r] = Mat[r].clone();
 			}
 			if (Rows != Cols)  throw new RuntimeException("Inverse Not possible");
-			if (Det(Mat) == 0) throw new RuntimeException("Singular Matrix");
+			if (Det(Mat) == 0) throw new RuntimeException("Singular MatrixLib");
 
 			LL = Rows;
 			LLM = Cols;
@@ -401,18 +388,18 @@ public class MatrixLib
 		/// In case of an error the error is raised as an exception. 
 		/// </summary>
 		/// <param name="Mat">
-		/// Matrix object with [n,n] dimension whose inverse is to be found
+		/// MatrixLib object with [n,n] dimension whose inverse is to be found
 		/// </param>
-		/// <returns>Inverse of the matrix as a Matrix object</returns>
-		public Matrix Inverse(Matrix Mat)
-		{return new Matrix(Inverse(Mat.in_Mat));}
+		/// <returns>Inverse of the matrix as a MatrixLib object</returns>
+		 public static MatrixLib Inverse(MatrixLib Mat)
+		{return new MatrixLib(Inverse(Mat.in_Mat));}
 		/// <summary>
 		/// Returns the transpose of a matrix.
 		/// In case of an error the error is raised as an exception. 
 		/// </summary>
 		/// <param name="Mat">Array whose transpose is to be found</param>
 		/// <returns>Transpose of the array as an array</returns>
-		public double[][] Transpose(double[][] Mat)
+		 public static double[][] Transpose(double[][] Mat)
 		{
 			double[][] Tr_Mat;
 			int i, j, Rows, Cols;
@@ -431,10 +418,10 @@ public class MatrixLib
 		/// Returns the transpose of a matrix.
 		/// In case of an error the error is raised as an exception. 
 		/// </summary>
-		/// <param name="Mat">Matrix object whose transpose is to be found</param>
-		/// <returns>Transpose of the Matrix object as a Matrix object</returns>
-		public Matrix Transpose(Matrix Mat)
-		{return new Matrix(Transpose(Mat.in_Mat));}																			
+		/// <param name="Mat">MatrixLib object whose transpose is to be found</param>
+		/// <returns>Transpose of the MatrixLib object as a MatrixLib object</returns>
+		 public static MatrixLib Transpose(MatrixLib Mat)
+		{return new MatrixLib(Transpose(Mat.in_Mat));}																			
 		
 	    /// <summary>
 		/// Returns the multiplication of a matrix or a vector (i.e 
@@ -444,7 +431,7 @@ public class MatrixLib
 		/// <param name="Value">The scalar value to multiply the array</param>
 		/// <param name="Mat">Array which is to be multiplied by a scalar</param>
 		/// <returns>The multiplication of the scalar and the array as an array</returns>
-		public double[][] ScalarMultiply(double Value, double[][] Mat)
+		 public static double[][] ScalarMultiply(double Value, double[][] Mat)
 		{
 			int i,j, Rows, Cols;
 			double[][] sol;
@@ -464,10 +451,10 @@ public class MatrixLib
 		/// In case of an error the error is raised as an exception.
 		/// </summary>
 		/// <param name="Value">The scalar value to multiply the array</param>
-		/// <param name="Mat">Matrix which is to be multiplied by a scalar</param>
+		/// <param name="Mat">MatrixLib which is to be multiplied by a scalar</param>
 		/// <returns>The multiplication of the scalar and the array as an array</returns>
-		public Matrix ScalarMultiply(double Value, Matrix Mat)
-		{return new Matrix(ScalarMultiply(Value,Mat.in_Mat));}
+		 public static MatrixLib ScalarMultiply(double Value, MatrixLib Mat)
+		{return new MatrixLib(ScalarMultiply(Value,Mat.in_Mat));}
 
 		/// <summary>
 		/// Returns the division of a matrix or a vector (i.e 
@@ -477,7 +464,7 @@ public class MatrixLib
 		/// <param name="Value">The scalar value to divide the array with</param>
 		/// <param name="Mat">Array which is to be divided by a scalar</param>
 		/// <returns>The division of the array and the scalar as an array</returns>
-		public double[][] ScalarDivide(double Value, double[][] Mat)
+		 public static double[][] ScalarDivide(double Value, double[][] Mat)
 		{
 			int i,j, Rows, Cols;
 			double[][] sol;
@@ -500,10 +487,10 @@ public class MatrixLib
 		/// In case of an error the error is raised as an exception.
 		/// </summary>
 		/// <param name="Value">The scalar value to divide the array with</param>
-		/// <param name="Mat">Matrix which is to be divided by a scalar</param>
+		/// <param name="Mat">MatrixLib which is to be divided by a scalar</param>
 		/// <returns>The division of the array and the scalar as an array</returns>
-		public Matrix ScalarDivide(double Value, Matrix Mat)
-		{return new Matrix(ScalarDivide(Value,Mat.in_Mat));}
+		 public static MatrixLib ScalarDivide(double Value, MatrixLib Mat)
+		{return new MatrixLib(ScalarDivide(Value,Mat.in_Mat));}
 
 		/// <summary>
 		/// Returns the cross product of two vectors whose
@@ -513,7 +500,7 @@ public class MatrixLib
 		/// <param name="V1">First vector array (dimension [3]) in the cross product</param>
 		/// <param name="V2">Second vector array (dimension [3]) in the cross product</param>
 		/// <returns>Cross product of V1 and V2 as an array (dimension [3])</returns>
-		public double[] CrossProduct(double[] V1, double[] V2)
+		 public static double[] CrossProduct(double[] V1, double[] V2)
 		{
 			double i,j,k;
 			double[] sol = new double[2];
@@ -537,7 +524,7 @@ public class MatrixLib
 		/// <param name="V1">First vector array (dimensions [3,1]) in the cross product</param>
 		/// <param name="V2">Second vector array (dimensions [3,1]) in the cross product</param>
 		/// <returns>Cross product of V1 and V2 as an array (dimension [3,1])</returns>
-		public double[][] CrossProduct(double[][] V1, double[][] V2)
+		 public static double[][] CrossProduct(double[][] V1, double[][] V2)
 		{
 			double i,j,k;
 			double[][] sol = new double[3][1];
@@ -562,11 +549,11 @@ public class MatrixLib
 		/// dimensions should be [3] or [3x1].
 		/// In case of an error the error is raised as an exception.
 		/// </summary>
-		/// <param name="V1">First Matrix (dimensions [3,1]) in the cross product</param>
-		/// <param name="V2">Second Matrix (dimensions [3,1]) in the cross product</param>
+		/// <param name="V1">First MatrixLib (dimensions [3,1]) in the cross product</param>
+		/// <param name="V2">Second MatrixLib (dimensions [3,1]) in the cross product</param>
 		/// <returns>Cross product of V1 and V2 as a matrix (dimension [3,1])</returns>
-		public Matrix CrossProduct(Matrix V1, Matrix V2)
-		{return (new Matrix((CrossProduct(V1.in_Mat,V2.in_Mat))));}
+		 public static MatrixLib CrossProduct(MatrixLib V1, MatrixLib V2)
+		{return (new MatrixLib((CrossProduct(V1.in_Mat,V2.in_Mat))));}
 		
 		/// <summary>
 		/// Returns the dot product of two vectors whose
@@ -576,7 +563,7 @@ public class MatrixLib
 		/// <param name="V1">First vector array (dimension [3]) in the dot product</param>
 		/// <param name="V2">Second vector array (dimension [3]) in the dot product</param>
 		/// <returns>Dot product of V1 and V2</returns>
-		public double DotProduct(double[] V1, double[] V2)
+		 public static double DotProduct(double[] V1, double[] V2)
 		{
 			int Rows1 = V1.length;
 			int Rows2 = V2.length;
@@ -591,7 +578,7 @@ public class MatrixLib
 		/// <param name="V1">First vector array (dimension [3,1]) in the dot product</param>
 		/// <param name="V2">Second vector array (dimension [3,1]) in the dot product</param>
 		/// <returns>Dot product of V1 and V2</returns>
-		public double DotProduct(double[][] V1, double[][] V2)
+		 public static double DotProduct(double[][] V1, double[][] V2)
 		{
 			int Rows1 = V1.length, Cols1= V1[0].length;
 			int Rows2 = V2.length, Cols2= V2[0].length;
@@ -603,10 +590,10 @@ public class MatrixLib
 		/// dimensions should be [3] or [3,1].
 		/// In case of an error the error is raised as an exception.
 		/// </summary>
-		/// <param name="V1">First Matrix object (dimension [3,1]) in the dot product</param>
-		/// <param name="V2">Second Matrix object (dimension [3,1]) in the dot product</param>
+		/// <param name="V1">First MatrixLib object (dimension [3,1]) in the dot product</param>
+		/// <param name="V2">Second MatrixLib object (dimension [3,1]) in the dot product</param>
 		/// <returns>Dot product of V1 and V2</returns>
-		public double DotProduct(Matrix V1, Matrix V2)
+		 public static double DotProduct(MatrixLib V1, MatrixLib V2)
 		{return (DotProduct(V1.in_Mat, V2.in_Mat));}
 
 		/// <summary>
@@ -615,7 +602,7 @@ public class MatrixLib
 		/// </summary>
 		/// <param name="V">The vector array (dimension [3]) whose magnitude is to be found</param>
 		/// <returns>The magnitude of the vector array</returns>
-		public double VectorMagnitude(double[] V)
+		 public static double VectorMagnitude(double[] V)
 		{
 			int Rows = V.length;
 			return Math.sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
@@ -627,7 +614,7 @@ public class MatrixLib
 		/// </summary>
 		/// <param name="V">The vector array (dimension [3,1]) whose magnitude is to be found</param>
 		/// <returns>The magnitude of the vector array</returns>
-		public double VectorMagnitude(double[][] V)
+		 public static double VectorMagnitude(double[][] V)
 		{
 			int Rows, Cols;
             Rows = V.length;
@@ -640,9 +627,9 @@ public class MatrixLib
 		///  Returns the magnitude of a vector whose dimension is [3] or [3,1].
 		///  In case of an error the error is raised as an exception.
 		/// </summary>
-		/// <param name="V">Matrix object (dimension [3,1]) whose magnitude is to be found</param>
-		/// <returns>The magnitude of the Matrix object</returns>
-		public double VectorMagnitude(Matrix V)
+		/// <param name="V">MatrixLib object (dimension [3,1]) whose magnitude is to be found</param>
+		/// <returns>The magnitude of the MatrixLib object</returns>
+		 public static double VectorMagnitude(MatrixLib V)
 		{return (VectorMagnitude(V.in_Mat));}					
 
 		/// <summary>
@@ -652,7 +639,7 @@ public class MatrixLib
 		/// <param name="Mat1">First array in equality check</param>
 		/// <param name="Mat2">Second array in equality check</param>
 		/// <returns>If two matrices are equal or not</returns>
-		public Boolean IsEqual (double[][] Mat1, double[][] Mat2)
+		 public static Boolean IsEqual (double[][] Mat1, double[][] Mat2)
 		{
 			double eps = 1E-14;
 			int Rows1, Cols1;
@@ -674,10 +661,9 @@ public class MatrixLib
 		/// Checks if two matrices of equal dimensions are equal or not.
 		/// In case of an error the error is raised as an exception.
 		/// </summary>
-		/// <param name="Mat1">First Matrix in equality check</param>
-		/// <param name="Mat2">Second Matrix in equality check</param>
+		/// <param name="Mat1">First MatrixLib in equality check</param>
+		/// <param name="Mat2">Second MatrixLib in equality check</param>
 		/// <returns>If two matrices are equal or not</returns>
-		public Boolean IsEqual (Matrix Mat1, Matrix Mat2)
+		 public static Boolean IsEqual (MatrixLib Mat1, MatrixLib Mat2)
 		{return IsEqual(Mat1.in_Mat, Mat2.in_Mat);}
-}
 }

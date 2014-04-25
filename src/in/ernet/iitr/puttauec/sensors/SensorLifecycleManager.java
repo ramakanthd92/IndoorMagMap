@@ -47,7 +47,7 @@ public class SensorLifecycleManager {
 	}
 
 	private void resumeHWEventListeners() {
-		int SENSOR_DELAY = SensorManager.SENSOR_DELAY_NORMAL;
+		int SENSOR_DELAY = SensorManager.SENSOR_DELAY_UI;
 		mSensorManager.registerListener(mSensorEventListener, mSensorManager
 				.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
 				SENSOR_DELAY);

@@ -9,9 +9,9 @@ import java.util.Date;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import in.ernet.iitr.puttauec.algorithms.AHRS;
+import in.ernet.iitr.puttauec.algorithms.KalmanFilter;
 import in.ernet.iitr.puttauec.R;
-import in.ernet.iitr.puttauec.R.id;
-import in.ernet.iitr.puttauec.R.layout;
 import in.ernet.iitr.puttauec.algorithms.ParticleFiltering;
 import in.ernet.iitr.puttauec.algorithms.DeadReckoning;
 import android.app.Activity;
@@ -44,6 +44,10 @@ public class ParticleFilteringActivity extends Activity {
 	private static final int PARFIL_RECKONING_STEP_SIZE_ESTIMATE = Menu.FIRST + 5;
 	private static final int PARFIL_RECKONING_LOG_PATH = Menu.FIRST + 6;
 	
+	public static final int PF_RECKONING_AHRS = 1;
+	public static final int PF_RECKONING_KALMAN = 2;
+	public static final String KEY_RECKONING_METHOD = "KeyReckoningMethod";
+
 	// Constants for QRCode data
 		private static final String KEY_VERSION = "Version";
 		private static final int MIN_QRCODE_VERSION = 0x1;
@@ -52,13 +56,20 @@ public class ParticleFilteringActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);		
 		setContentView(R.layout.activity_particle_filtering);
-	/*	Intent mintent = getIntent();
-		String file_id = (String) mintent.getStringExtra(InputActivity.EXTRA_MESSAGE);
-		int  fi = Integer.valueOf(file_id);
-		System.out.print(fi);
-		System.out.println("PFA");
-	*/	this.mDeadReckoning = new ParticleFiltering(this);
-		intent = new Intent(this, BroadcastService.class);
+	    int method = getIntent().getIntExtra(KEY_RECKONING_METHOD, PF_RECKONING_AHRS);
+		
+	    Log.i(TAG, "Starting PFReckoningActivity with angle estimation method: " + method);
+		switch(method) {
+		
+		case PF_RECKONING_AHRS:
+			mDeadReckoning = new ParticleFiltering(this, new AHRS());
+			break;
+		case PF_RECKONING_KALMAN:	
+			mDeadReckoning = new ParticleFiltering(this, new KalmanFilter());
+			break;
+		
+		}	
+	    intent = new Intent(this, BroadcastService.class);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 	}
 	

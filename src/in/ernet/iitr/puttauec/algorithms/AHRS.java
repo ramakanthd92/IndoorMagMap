@@ -25,7 +25,7 @@ package in.ernet.iitr.puttauec.algorithms;
 //
 // -------------------------------------------------------------------------
 
-public class AHRS {
+public class AHRS implements IAngleAlgorithm{
 
         // filter parameters and states
         private double gyroMeasError = 10;                                            // gyroscope measurement error (in degrees per second)
@@ -93,9 +93,9 @@ public class AHRS {
             double twom_z = 2 * m_z;
 
 
-            w_x = w_x * Math.PI / 180;
-            w_y = w_y * Math.PI / 180;
-            w_z = w_z * Math.PI / 180;
+            //w_x = w_x * Math.PI / 180;
+            //w_y = w_y * Math.PI / 180;
+            //w_z = w_z * Math.PI / 180;
             
             // normalise the accelerometer measurement
             norm = Math.sqrt(a_x * a_x + a_y * a_y + a_z * a_z);
@@ -189,5 +189,9 @@ public class AHRS {
             b_x = Math.sqrt((h_x * h_x) + (h_y * h_y));
             b_z = h_z;
         }
-
+        
+        public double[] quaternion_values()
+        { double[] quat = {SEq_1,SEq_2,SEq_3,SEq_4};
+          return quat;
+        }
  }

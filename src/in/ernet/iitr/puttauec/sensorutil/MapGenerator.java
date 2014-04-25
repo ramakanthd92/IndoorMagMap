@@ -47,7 +47,6 @@ public class MapGenerator implements Runnable{
 		                e.printStackTrace();
 		       }		      
 		   }
-	
 	public void run()
 	{    android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
 	     magnitudes = new double[N][27];

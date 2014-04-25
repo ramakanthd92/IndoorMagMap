@@ -1,5 +1,6 @@
 package in.ernet.iitr.puttauec.algorithms;
 
+import in.ernet.iitr.puttauec.R;
 import in.ernet.iitr.puttauec.sensorutil.MapGenerator;
 import in.ernet.iitr.puttauec.sensorutil.RandomSingleton;
 
@@ -7,12 +8,15 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Random;
 
 import Jama.Matrix;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.Bitmap.Config;
+import android.graphics.BitmapFactory;
 import android.text.format.DateFormat;
 import android.util.Log;
 //import android.os.Handler;
@@ -20,21 +24,20 @@ import android.util.Log;
 public class ParticleFiltering extends DeadReckoning {
 	   //constants
        private static final String TAG = "PaicleFilterReckoning";
-	   public static final int DEFAULT_PARTICLE_COUNT = 500; //1000 //2000
-	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 260; // 400  //600 //800 //1000 //1500 
-	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 2500; //2000 //10000  //15000
-	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 60; //2000 //10000  //15000
-	   private static final double INIT_SD_X = 1.0;
-	   private static final double INIT_SD_Y = 1.0;	   
+	   public static final int DEFAULT_PARTICLE_COUNT = 50; //1000 //2000
+	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 150; // 400  //600 //800 //1000 //1500 
+	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 3900; //2000 //10000  //15000
+	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 110; //2000 //10000  //15000
+	   private static final double INIT_SD_X = 0.4;
+	   private static final double INIT_SD_Y = 0.4;	  
+	   private static final double X_SD = 3.0;
+	   private static final double Y_SD = 3.0;	   	  
 	   private static final double  minX  = 0.0  ; 
 	   private static  double  maxX  = 16.0 ;  
 	   private static final double  minY  = 0.0 ;  
 	   private static final double  maxY  = 26.0 ; 
 	   private static final double mul =(180/Math.PI);
-	   private static final double cons = Math.pow(2.0*Math.PI,1.5);
-	   private static final double prb = 0.0001;			// The constant probability for the particles going away from the measured map
-	   private static final double kin = Math.pow(10.0,15.0);             // The multiplier to account for too much less probability for the particles prediction.
-	  // private static final double xoffset = 12.8375610466;
+	   // private static final double xoffset = 12.8375610466;
 	  // private static final double yoffset = -0.0999689574027;
 	   
 	   //Instance variables
@@ -42,7 +45,7 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static final Random rand = RandomSingleton.instance;
 	   private double[]  measurement  = {0.0,0.0,0.0};					// Magnetic field in Device Co-ordinate system
 	   private double orien  = 0.0;
-	   private double[][] R = {{sigma_2,0.0,0.0},{0.0,sigma_2,0.0},{0.0,0.0,sigma_2}};	      // Co-variance Matrix for Vector Gaussian
+	   private double[][] Ra = {{sigma_2,0.0,0.0},{0.0,sigma_2,0.0},{0.0,0.0,sigma_2}};	      // Co-variance Matrix for Vector Gaussian
 	   private double [] mTrueMeasurement = {0.0,0.0,0.0};					// Magnetic field in Global co-ordinate system
 	   private double [] mRV = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};	// Rotation Vector for local Rotation method used during each update location call.  
 	   private double[] position  = {0.0,0.0,0.0};						// Magnetic field vector at any position (x,y) of the particles estimated from Interpolation function.
@@ -50,23 +53,27 @@ public class ParticleFiltering extends DeadReckoning {
 	   protected MapGenerator magneticmapex,magneticmapey,magneticmapez;
 	   protected Particle[] particles ;// particles
 	   protected Particle[] inside_particles ;
-	   protected Particle[] sortedParticles ;
+	   protected Particle[] oldParticles;						
 	   protected double[] weightSums ;									// CDF of importance weights
 	   private double magnitude;										 // magnitude to be written to Magnetic field log.
 	   private double angle;
-	   private  Matrix RM = new Matrix(R);
+	   private double theta_adj;
+	   private  Matrix RM = new Matrix(Ra);
 	   private double[][] MU_ARR = {{0.f,0.f,0.f}};
        private double[][] Z_ARR = {{0.f,0.f,0.f}};
       
        private  Matrix Rinv = RM.inverse();
 	   //Control parameters 
+       
 	   private static int particleCount = DEFAULT_PARTICLE_COUNT;       
 	   private static double msenseNoise = DEFAULT_SENSE_NOISE_THRESHOLD/1000.f;    // Step Noise for the particles used in dynamical equation.  Reduce this to a mimimum to reduce error in path length.  
 	   private static double mstepNoise = DEFAULT_STEP_NOISE_THRESHOLD/1000.f;      // Sense noise used in Co-variance matrix of Vector Gaussian
 	   private static double mturnNoise = DEFAULT_TURN_NOISE_THRESHOLD/1000.f;	    // Turn noise for particles used in dynamical equations
 	   private static double mmse = 0.0;                                            // MMSE of the particles at each update location step from estimated position.
 
-	   //log file writers	   
+	   //log file writers
+	   private static final double MAX_ACCEPTABLE_TRANSITION_COST = 1e-4;
+	   protected Bitmap mFloorPlan;
 	   private FileWriter mNoiseFileWriter;
 	   private FileWriter mMagLogFileWriter;
 	   private FileWriter mMMSEDistanceFileWriter;
@@ -86,6 +93,9 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static double yp = 0.0;
 	   private static double den = 0.0;
 	   private static double step_act = 0.0;
+	   private final int floorPlanHeight;
+	   private final int floorPlanWidth;
+	   private float transitionCost = 0.f;	
 	   
   public class Pose
   { 	public double x;
@@ -106,70 +116,61 @@ public class ParticleFiltering extends DeadReckoning {
   public class Particle
   { 	public double x;
     	public double y;
-    	public double prev_x;
-    	public double prev_y;
-    	public double theta;
+    	public double theta_noise; 
     	public double importance_weight;
     	public Particle()
     		{  	x  = minX + (maxX-minX)*rand.nextDouble() ; 		    
-    			y  = minY + (maxY-minY)*rand.nextDouble() ; 
-    			theta = mturnNoise*rand.nextGaussian();
+    			y  = minY + (maxY-minY)*rand.nextDouble() ;
+    			theta_noise = mturnNoise*rand.nextGaussian();
     			importance_weight = 1.0;
     		}	 
     	public Particle(Particle P)
     		{  	x  = P.x ; 
     			y  = P.y ; 
-    			theta = P.theta;
+    			theta_noise = P.theta_noise;
     			importance_weight = P.importance_weight;
-    		}	 
-    	public void set_pos(double x_co, double y_co, double theta_co)
+    		}	
+    	public Particle(double x_co, double y_co, double imp)
+		{    	x  = x_co ; 		
+			    y  = y_co ; 
+			    theta_noise = mturnNoise*rand.nextGaussian();
+			    importance_weight = imp;
+		}	
+    	public void set_pos(double x_co, double y_co)
     		{  	x = x_co;
     			y = y_co;
-    			theta = theta_co; 
     		}	 
-    	public void move(double step_size, double rad_angle)
+    	public void move(double step_size, double rad_angle, double theta_a)
     		{   step_act = step_size + mstepNoise*rand.nextGaussian();
-    		 	angle = rad_angle + mturnNoise*rand.nextGaussian();
+    		 	angle = rad_angle + theta_noise + theta_a;
                 angle %= (Math.PI*2);
     		 	x = x + (step_act* Math.sin(angle));                   // TODO : Use Particles Theta Value Here   // x %= maxX;         																	   // TODO : Use Map Bounds Here 
     			y = y + (step_act* Math.cos(angle));                   // TODO : Use Velocity Dependent step_noise and turn_noise here
     		}
-    	public void SensorErrorModel(double Magnetic_Measurement[],double rad_angle)
-    		{   importance_weight = 1.0;		      
-    			if ((x > minX && x < maxX) && (y > minY && y < maxY))
-    				{   if(rad_angle < (-3*Math.PI/4) || rad_angle > 3*Math.PI/4)
-    						{   position[0] = magneticmapex.f.value(x,y);		// X-axis magnetic field of a particle look up from interpolation function. 
-        					    position[1] = magneticmapey.f.value(x,y);		// Y-axis magnetic field.
-        			    	    position[2] = magneticmapez.f.value(x,y);		// Z-axis magnetic field.    					
-    							importance_weight *= VectorGaussian(position,msenseNoise,Magnetic_Measurement);    						
-    						}
-    					else
-    						{   position[0] = magneticmapwx.f.value(x,y);		// X-axis magnetic field of a particle look up from interpolation function. 
-        					    position[1] = magneticmapwy.f.value(x,y);		// Y-axis magnetic field.
-        			    	    position[2] = magneticmapwz.f.value(x,y);		// Z-axis magnetic field.    					
-    							importance_weight *= VectorGaussian(position,msenseNoise,Magnetic_Measurement);  						
-    						}
-    				}  
-    			else 
-    				{ 	importance_weight = prb;
-    				}
-    		}  
     	public void normalizeImportanceWeight(double sum)
     		{   if (sum == 0) {
     		    			throw new IllegalArgumentException("Argument 'divisor' is 0");
     				}
     			 importance_weight /= sum;    
     		}
+    	@Override
+    	public String toString() {
+    		{  return "Particle [ x =" + x + "]" + "[ y =" + y + "]" +  "[ imp =" + importance_weight + "]" ; 			
+    		}    	
+       }
   }
-   /**
+  
+/**
     * Constructor for particle filtering class. 
     * Generates the magnetic field maps x,y,z axes using separate threads.
     * 
     * @param ctx
     */  
-		public ParticleFiltering(Context ctx) {
+		public ParticleFiltering(Context ctx, IAngleAlgorithm algorithm) {
 			super(ctx);   
-	//TODO: Incorporate the Barcode Scanner to identify the path way.
+			mFloorPlan = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.library);
+			mFloorPlan = mFloorPlan.copy(Config.ARGB_8888, true);
+	        //TODO: Incorporate the Barcode Scanner to identify the path way.
 	 	    String json_obj_0 = loadJSONFromAsset(ctx,"data-west-6.json");
 		    String json_obj_1 = loadJSONFromAsset(ctx,"data-east-6.json");
     		magneticmapwx = new MapGenerator(json_obj_0, 17,0);
@@ -184,6 +185,16 @@ public class ParticleFiltering extends DeadReckoning {
 	        magneticmapex.run();
 	        magneticmapey.run();
 	        magneticmapez.run();
+	        angle_algo = algorithm; 
+	        // Do a white removal
+			floorPlanWidth = mFloorPlan.getWidth();
+			floorPlanHeight = mFloorPlan.getHeight();
+			for(int x = 0; x < floorPlanWidth; ++x) {
+				for(int y = 0; y < floorPlanHeight; ++y) {
+					if(mFloorPlan.getPixel(x, y) == Color.WHITE)
+						mFloorPlan.setPixel(x, y, Color.WHITE - mFloorPlan.getPixel(x, y));
+				}
+			}	
 		}
 	
 		/**
@@ -266,7 +277,7 @@ public class ParticleFiltering extends DeadReckoning {
 			for (int i = 0 ; i < len ; i++) {
 				inside_particles[i] = particles[i];
 			}
-			normalizeWeights();
+			normalizeWeights(len);
 			try {
 					String r = (String) (DateFormat.format("yyyy-MM-dd-hh-mm-ss", new java.util.Date()) );
 					String logFileBaseName = "pfLog." + r;
@@ -303,65 +314,204 @@ public class ParticleFiltering extends DeadReckoning {
 		 *  Resamples all important particles. Predicts the current Location using the mean of the particle density. 
 		 */
 		@Override
-		public void updateLocation(double step_size, double rad_angle, double turn_angle) {
+		public void updateLocation(double step_size, double rad_angle, double turn_angle) {			
+			
 			System.out.println("update");
-			Particle[] next = new Particle[particles.length];
+			inside_particles = new Particle[particles.length];
+			oldParticles = particles.clone();
+			Particle lost = new Particle(0.0,0.0,1.0);					
 			len = particles.length;
-			
-	//		mRV = mSensorLifecycleManager.getRotationMatrix();						
-			
-			updateTrueMag(rad_angle);
-			
+			double px, py ,est,act;	
 			orien = 0.0;
-			int inside_len = 0;
-			for (int i = 0 ; i< len; i++)
-			{ if ((particles[i].x > minX && particles[i].x < maxX) && (particles[i].y > minY && particles[i].y < maxY))
-				{ inside_len++ ; 				
+			int in_len = 0;
+			int out_len = 0;
+			System.out.println(lost);			
+			for(int i = 0; i < particleCount ; ++i) {
+				particles[i].move(step_size,rad_angle,4*theta_adj);
+				px = particles[i].x;
+				py = particles[i].y;				
+				transitionCost = transitionCost(particles[i]);
+				act = measurement[0]*measurement[0] + measurement[1]*measurement[1] +measurement[2]*measurement[2];			   	
+				if(Math.abs(transitionCost) < 1e-4) {
+					// Particle doesn't cross walls
+				  System.out.println("inside_particles" + particles[i]);						
+				  if(px >= 0.0 && px <= maxX && py >= 0.0 && py <=maxY)
+				   { inside_particles[in_len]  = particles[i];
+				     inside_particles[in_len].importance_weight = 1.0;
+					 if(rad_angle < (-3*Math.PI/4) || rad_angle > 3*Math.PI/4)
+					 {  	position[0] = magneticmapex.f.value(px,py);		// X-axis magnetic field of a particle look up from interpolation function. 
+   					        position[1] = magneticmapey.f.value(px,py);		// Y-axis magnetic field.
+   			    	        position[2] = magneticmapez.f.value(px,py);		// Z-axis magnetic field.    					
+   			    	        inside_particles[in_len].importance_weight *= VectorGaussian(position,msenseNoise,measurement);    						
+					 }
+					 else if (rad_angle > (-Math.PI/4) && rad_angle < Math.PI/4)
+						{   position[0] = magneticmapwx.f.value(px,py);		// X-axis magnetic field of a particle look up from interpolation function. 
+   					    	position[1] = magneticmapwy.f.value(px,py);		// Y-axis magnetic field.
+   					    	position[2] = magneticmapwz.f.value(px,py);		// Z-axis magnetic field.    					
+   					    	inside_particles[in_len].importance_weight *= VectorGaussian(position,msenseNoise,measurement);  						
+						}
+					 else
+						{   position[0] = magneticmapex.f.value(px,py);		// X-axis magnetic field of a particle look up from interpolation function. 
+   					    	position[1] = magneticmapey.f.value(px,py);		// Y-axis magnetic field.
+   			    	        position[2] = magneticmapez.f.value(px,py);		// Z-axis magnetic field.
+						    est = position[0]*position[0] + position[1]*position[1] + position[2]*position[2];
+						   	inside_particles[in_len].importance_weight *= Gaussian(est,msenseNoise,act);
+						}	
+					 in_len++;
+				   }			   
 				}
-			}	
-			
-			if(inside_len != 0)
-			{  inside_particles = new Particle[inside_len];
-				int j = 0;
-				for (int i = 0 ; i< len; i++)
-				{ if ((particles[i].x > minX && particles[i].x < maxX) && (particles[i].y > minY && particles[i].y < maxY))
-					{   inside_particles[j] = particles[i];
-						j++;
-					}
-				}
+				else
+				{   System.out.println("out_particles" + particles[i]);
+					lost.x += particles[i].x;
+				    lost.y += particles[i].y;
+				    out_len++;					
+				}				
+			 }
+			System.out.println("in_len" + in_len);
+			if(out_len != 0)
+			{	lost.x /= out_len;
+				lost.y /= out_len;
 			}
+			System.out.println(lost);
+			double[] distance = new double[in_len] ;
+			double max_distance = 1.0,h,k;
+			for(int i = 0; i < in_len; ++i) {
+				     h = (lost.x-inside_particles[i].x);
+				     k = (lost.y-inside_particles[i].y);
+				     distance[i] = Math.sqrt(h*h + k*k);
+					 max_distance = Math.max(max_distance,distance[i]);     				
+				}
+			for(int i = 0; i < in_len; ++i) {				
+					inside_particles[i].importance_weight +=  distance[i]/max_distance;
+					System.out.println(inside_particles[i]);					
+			}						
 			
-			for (int i = 0 ; i< len; i++) {
-		     	next[i] = selectParticleAndCopy();
-				next[i].move(step_size,rad_angle);                        // TODO: Should order move and sense			
-				next[i].SensorErrorModel(mTrueMeasurement,rad_angle);
-	//			System.out.println(magnitude);
-				orien += angle ;				
-			}			
-			orien = orien/len;
-			particles = next;
-			normalizeWeights();
-			mmse = minimumMeanSquareDistance();
+			
+			if(in_len > 0) {
+				normalizeWeights(in_len);		
+				for(int j = 0; j < particleCount; ++j) {						
+						particles[j] = selectParticleAndCopy(in_len);						
+					}							
+			}
+			else {
+					// Resampling stage: don't go here unless you get lost!!!
+					// Retry with lesser accuracy particles
+					for(int i = 0; i < particleCount; ++i) {
+						Particle disturbedParticle = new Particle(oldParticles[i].x + X_SD*rand.nextGaussian(), oldParticles[i].y + Y_SD*rand.nextGaussian(),oldParticles[i].importance_weight);						
+						while(transitionCost(disturbedParticle) > MAX_ACCEPTABLE_TRANSITION_COST)
+						{ disturbedParticle = new Particle(oldParticles[i].x + X_SD*rand.nextGaussian(), oldParticles[i].y + Y_SD*rand.nextGaussian(),oldParticles[i].importance_weight);							
+						}
+						particles[i] = disturbedParticle;
+					}
+		    }		
+			
+			theta_adj = 0;
+			for(int j = 0; j < in_len; ++j) {
+				 theta_adj += inside_particles[j].theta_noise; 
+			}
+			if(in_len != 0)
+			{ theta_adj /= in_len;}
+			mmse = minimumMeanSquareDistance();			
 			if(this.isLogging()) {
 				try {
-					mMMSEDistanceFileWriter.write("" + particleCount + "," + mmse + "," + getLocation()[0]  + "," + getLocation()[1] +"," + position[0] +"," +  position[1] +"," + position[2] +"," + measurement[0] +"," +  measurement[1] +"," + measurement[2] + "," + turn_angle+ ","+ orien + "\n" );			
+					mMMSEDistanceFileWriter.write("" + particleCount + "," + mmse + "," + getLocation()[0]  + "," + getLocation()[1] +"," + position[0] +"," +  position[1] +"," + position[2] +"," + measurement[0] +"," +  measurement[1] +"," + measurement[2] + "," + turn_angle + "," + theta_adj + "," + in_len + "\n"  );			
 					Log.d(TAG,"turn " + String.valueOf(turn_angle));
 					Log.d(TAG,"orien " + String.valueOf(orien));
 
 				} catch (IOException e) {
 					Log.e(TAG, "Log file write for MMSEDistance failed!!!\n", e);
 					e.printStackTrace();
+			    }
+			}
+      }
+/*		private float transitionCost(Particle particle, Particle newParticle) {
+			double newParticleX = newParticle.x;
+			double newParticleY = newParticle.y;
+			double ParticleX = particle.x/getmMapWidth();
+			double ParticleY = particle.y/getmMapHeight();
+			int x,y,pixel,h,k;
+			newParticleX = Math.min(1, Math.max(newParticleX/getmMapWidth(), 0));
+			newParticleY = Math.min(1, Math.max(newParticleY/getmMapHeight(), 0));
+			
+			//newParticle --> after movement
+			//Particle --> before movement
+			boolean check = false;
+			
+			final float[] startPos = new float[] { (float) (ParticleX*floorPlanWidth), (float) (ParticleY*floorPlanHeight) };
+			
+			double deltaX = (newParticleX - ParticleX)*floorPlanWidth;
+			double deltaY = (newParticleY - ParticleY)*floorPlanHeight;
+			
+			final double numSteps = Math.round(Math.max(Math.abs(deltaX), Math.abs(deltaY)));  //No.of pixels
+			
+			deltaX /= numSteps;           // Xpixels 
+			deltaY /= numSteps;			  // Ypixels
+			
+			double distance = 0;
+			
+			int maxRed = 0;           
+			for(int step = 0; step < numSteps; ++step) {
+				 x = (int) Math.round(startPos[0] + step*deltaX);      
+			     y = (int) Math.round(startPos[1] + step*deltaY);
+			     
+			     if(x >= 0 && x < floorPlanWidth && y >= 0 && y < floorPlanHeight) {
+					pixel = mFloorPlan.getPixel(x,y);
+					h = (int) Math.round(newParticleX*floorPlanWidth);
+					k = (int) Math.round(newParticleY*floorPlanHeight);
+					if(Color.red(pixel) == 255)
+					{ 
+					  maxRed = Math.max(maxRed, Color.red(pixel));
+					}					               
+				} else {
+				//	System.out.println("[x = " + x +"][y = " + y+ "]");
+					check =true;
+				//	Log.w(TAG, "Particle out of bounds. Unless you're close to the edge of the map, this is serious.");
 				}
-	}
-}
-    
+			}					
+			// Check that there is no red pixel within the 3x3 matrix around the new pixel
+			// This is to account for rounding errors in the float values
+			int x0 = (int) Math.round(newParticleX*floorPlanWidth); 
+			int y0 = (int) Math.round(newParticleY*floorPlanHeight);
+			for(int xoffset = -1; xoffset <= 1; ++xoffset) {
+				for(int yoffset = -1; yoffset <= 1; ++yoffset) {
+				    x = x0 + xoffset;
+				    y = y0 + yoffset;
+					if(x >= 0 && x < floorPlanWidth && y >= 0 && y < floorPlanHeight) {
+					    pixel = mFloorPlan.getPixel(x,y);
+						maxRed = Math.max(maxRed, Color.red(pixel));
+					}
+				}
+			}			
+			if(check)
+			{	System.out.println("oldParticle" + particle);
+				System.out.println("newParticle" + newParticle);						  
+			}
+			return maxRed/255.0f;
+		}
+  */
+		private float transitionCost(Particle newParticle) {
+			double newParticleX = newParticle.x;
+			double newParticleY = newParticle.y;
+			int pixel,x,y;
+			newParticleX = newParticleX/getmMapWidth();
+			newParticleY = newParticleY/getmMapHeight();
+			x = (int) Math.round(newParticleX*floorPlanWidth);
+			y = (int) Math.round(newParticleY*floorPlanHeight);
+			if(x >= 0 && x < floorPlanWidth && y >= 0 && y < floorPlanHeight) {
+				 pixel = mFloorPlan.getPixel(x,y);				
+			     return	(Color.red(pixel)/255.0f);
+		    }		
+			else 
+			{    return 1.0f; 				
+			}
+		}
 		/** Resampling the particles after measurement probability is used to weight all the particles and normalise all the particle weights.
 		 *  It gives importance to most preferred particles. 
 		 * @return   particle with replacement.
 		 */
-		private Particle selectParticleAndCopy() {
+		private Particle selectParticleAndCopy(int len) {
 			sel = rand.nextDouble();
-			index = Arrays.binarySearch(weightSums,0,inside_particles.length,sel);
+			index = Arrays.binarySearch(weightSums,0,len,sel);
 			if (index < 0) {
 				index = - (index + 1);
 			}
@@ -370,8 +520,7 @@ public class ParticleFiltering extends DeadReckoning {
 			}
 			return new Particle(inside_particles[index]);
 		}
-         
-		
+         	
 		private double effective_n() {
 			len = particles.length;
 			den = 0.0;
@@ -383,9 +532,9 @@ public class ParticleFiltering extends DeadReckoning {
 		/** Helper funtion for Normalize weights. 
 		 * @return
 		 */
-		private double calculateSums() {
+		private double calculateSums(int len) {
 		    totalSum = 0.0;
-		    len = inside_particles.length;
+		    System.out.println(len);
 			for (int i = 0; i < len; i++) {
 				totalSum += inside_particles[i].importance_weight;
 			//	 Log.e(TAG,String.valueOf(particles[i].importance_weight));	 
@@ -396,36 +545,32 @@ public class ParticleFiltering extends DeadReckoning {
 		
 		/**  Normalise weights if the total sum is not zero or weight all particles to 1.0                   
 		*/
-		private void normalizeWeights() {
-	     sum = calculateSums();
+		private void normalizeWeights(int len) {
+	     sum = calculateSums(len);
 	     if (sum == 0.0) {
 			  System.out.println(" Sum of weights is zero. Regenerate all particles.");
-			  len = inside_particles.length;
-			  for (int i = 0; i <len ; i++) {
+			  for (int i = 0; i <len ; i++) {				   
 				   inside_particles[i].importance_weight = 1.0;
 				}
-				normalizeWeights();
+				normalizeWeights(len);
 			}
-		    len = inside_particles.length;
-			for (int i = 0; i <len ; i++) {
+		    for (int i = 0; i <len ; i++) {
 				inside_particles[i].normalizeImportanceWeight(sum);
 			}
-			calculateFilterArray();
+			calculateFilterArray(len);
 		}
 		
 		/**  weightSums CDF Generation.		  
 		 */
-		private void calculateFilterArray() {
+		private void calculateFilterArray(int len) {
 			this.weightSums[0] = 0.0;
-		    len = inside_particles.length;
 		    value = 0.0;
 			for (int i = 0; i < len; i++) {
 			    value = this.inside_particles[i].importance_weight;
 				this.weightSums[i + 1] = this.weightSums[i] + value;
 			}
-			total = this.weightSums[this.inside_particles.length];                        // TO DO : use Dependance on previous Filter weight too..
-			len = inside_particles.length+1;
-			for (int i = 0 ; i < len; i++) {
+			total = this.weightSums[len];                        // TO DO : use Dependance on previous Filter weight too..
+			for (int i = 0 ; i < len+1; i++) {
 				weightSums[i] /= total;
 			}
 		}
@@ -436,25 +581,24 @@ public class ParticleFiltering extends DeadReckoning {
 		public double minimumMeanSquareDistance()
 		{  sum = 0.0; err = 0.0; dx = 0.0; dy = 0.0;		
 		   Particle r = getParticleMedian();
-		   len = inside_particles.length;
+		   len = particles.length;
 		   for (int i = 0; i <len ; i++)  // calculate mean error
-			{  dx = (inside_particles[i].x - r.x);
-	           dy = (inside_particles[i].y - r.y);
+			{  dx = (particles[i].x - r.x);
+	           dy = (particles[i].y - r.y);
 	           err = Math.sqrt(dx * dx + dy * dy);
 	           sum += err;
 			}
-		   return (sum/inside_particles.length);
+		   return (sum/len);
 		}
 		
 		/**	Predicts the most probable particle as the Current location Estimate. 
 		 * @return  The particle with highest Importance weight.
 		 */
-		public Particle getBestMap() {
+		public Particle getBestMap(int len) {
 			Particle rc = particles[0];
 			best = rc.importance_weight;
 		    currentWeight = 0.0;
-		    len = inside_particles.length;
-			for (int i = 0; i <len ; i++) {
+		    for (int i = 0; i < len ; i++) {
 				currentWeight = inside_particles[i].importance_weight;
 				if (currentWeight > best) {
 					rc = inside_particles[i];
@@ -468,12 +612,10 @@ public class ParticleFiltering extends DeadReckoning {
 		/** Calculate the mean of all particles based upon importance weights.  
 		 * @return  The Importance weight based mean estimate of all the particles
 		 */
-		public Particle getParticleEstimate(){
+		public Particle getParticleEstimate(int len){
 			currentWeight = 0.0; xp = 0.0 ; yp = 0.0;
 			double totalWeight = 0.0;
-			len = inside_particles.length;
-			
-			for (int i = 0; i <len ; i++) {
+			for (int i = 0; i < len ; i++) {
 				  currentWeight = inside_particles[i].importance_weight;
 				  totalWeight += currentWeight;
                   xp += inside_particles[i].x;
@@ -483,26 +625,26 @@ public class ParticleFiltering extends DeadReckoning {
 			yp /= len;
 			System.out.println(totalWeight);
 		    Particle pe = new Particle();
-		    pe.set_pos(xp,yp,0.0);
+		    pe.set_pos(xp,yp);
 			setLocation(xp,yp);
 			return pe;
 		}
 
 		public Particle getParticleMedian(){
 			currentWeight = 0.0; xp = 0.0 ; yp = 0.0;
-			len = inside_particles.length;
+			len = particles.length;
 			double[] xs = new double [len]; 
 			double[] ys = new double [len];
 			for (int i = 0; i <len ; i++) {
-			   xs[i] = inside_particles [i].x;
-			   ys[i] = inside_particles [i].y;
+			   xs[i] = particles[i].x;
+			   ys[i] = particles [i].y;
 			}
 			Arrays.sort(xs);
 			Arrays.sort(ys);	
 			xp = xs[len/2];
 			yp = ys[len/2];
 		    Particle pe = new Particle();
-		    pe.set_pos(xp,yp,0.0);
+		    pe.set_pos(xp,yp);
 			setLocation(xp,yp);
 			return pe;
 		}

@@ -1,8 +1,10 @@
 package in.ernet.iitr.puttauec.algorithms;
 
 
+import in.ernet.iitr.puttauec.algorithms.IAngleAlgorithm;
 import in.ernet.iitr.puttauec.sensors.DefaultSensorCallbacks;
 import in.ernet.iitr.puttauec.sensors.SensorLifecycleManager;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,8 +24,8 @@ import android.util.Log;
 public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm, IReckoningMethod {
 	// Constants
 	protected static final String SAMPLES_DIR = Environment.getExternalStorageDirectory() + File.separator + "samples";
-	private static final int DEFAULT_MAP_HEIGHT = 480;
-	private static final int DEFAULT_MAP_WIDTH = 640;
+	private static final int DEFAULT_MAP_HEIGHT = 26;
+	private static final int DEFAULT_MAP_WIDTH = 16;
 	private static final int MAX_HISTORY_SIZE = 10;
 	private static final String TAG = "DeadReckoning";
 	private static final int PEAK_HUNT = 0;
@@ -53,7 +55,8 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	
 	// Reference to the Sensor Lifecycle Manager used to get the sensor data
 	protected SensorLifecycleManager mSensorLifecycleManager;
-
+	protected IAngleAlgorithm angle_algo = new AHRS();
+	  
 	protected boolean mIsLogging;
 	protected FileWriter mAccelLogFileWriter;
 	protected FileWriter mStepLogFileWriter;
@@ -70,9 +73,8 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
     private float[] gyro = new float[3];
     private float[] magnet = new float[3];
     private float[] accel = new float[3];
-    private AHRS ahrs_algo = new AHRS(); 
       	
-     public DeadReckoning(Context ctx) {
+    public DeadReckoning(Context ctx) {
 		init();		
 		mSensorLifecycleManager = SensorLifecycleManager.getInstance(ctx);
 	    q0 = 1.0f; q1 = 0.0f; q2 = 0.0f; q3 = 0.0f;	// quaternion of sensor frame relative to auxiliary frame
@@ -211,8 +213,10 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	@Override
 	public void onGyroUpdate(float[] values, long deltaT, long timestamp) {
 		 System.arraycopy(values,0,gyro,0,3);
-		 ahrs_algo.update(gyro[0],gyro[1],gyro[2],accel[0],accel[1],accel[2],magnet[0],magnet[1],magnet[2],deltaT*NS2S);	
-	     getAngleGD();	 
+		 angle_algo.update(gyro[0],gyro[1],gyro[2],accel[0],accel[1],accel[2],magnet[0],magnet[1],magnet[2],deltaT*NS2S);	
+		 double[] qi = angle_algo.quaternion_values();
+		 q0 = qi[0]; q1 = qi[1]; q2 = qi[2];  q3 = qi[3];
+		 getAngleGD();	 
 	}
 	
 	/* (non-Javadoc)
@@ -705,8 +709,7 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 	}
 */
 	public void getAngleGD()
-	{  q0 = ahrs_algo.SEq_1;  q1 = ahrs_algo.SEq_2;  q2 = ahrs_algo.SEq_3; q3 = ahrs_algo.SEq_4;
-	   gyroOri[0] = (float) ((Math.atan2(2.0 * (q1*q2 - q0*q3),(2*(q0*q0 + q1*q1)-1))));          
+	{  gyroOri[0] = (float) ((Math.atan2(2.0 * (q1*q2 - q0*q3),(2*(q0*q0 + q1*q1)-1))));          
        gyroOri[1] = (float) (Math.asin(-2.0 * (q1*q3 + q0*q2)));
        gyroOri[2] = (float) ((Math.atan2(2.0 * (q2*q3 - q0*q1),(2*(q0*q0 + q3*q3)-1)))); 
 	}

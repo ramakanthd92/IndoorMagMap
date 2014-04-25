@@ -17,7 +17,7 @@ public class ParticlFilterControlActivity extends Activity {
 	public static final String KEY_SENSE_NOISE_VALUE = "SenseNoiseValue";
 	public static final String KEY_TURN_NOISE_VALUE = "TurnNoiseValue";
 	
-
+	
 	private SeekBar mParticleCountSlider;
 	private TextView  mParticleCountValue;
 	private SeekBar mStepNoiseSlider;

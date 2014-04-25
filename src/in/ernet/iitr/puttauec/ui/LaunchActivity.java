@@ -1,19 +1,10 @@
 package in.ernet.iitr.puttauec.ui;
 
+import in.ernet.iitr.puttauec.ui.DeadReckoningActivity;
+import in.ernet.iitr.puttauec.ui.ParticleFilteringActivity;
 import in.ernet.iitr.puttauec.R;
-import org.apache.commons.math3.analysis.interpolation.SmoothingPolynomialBicubicSplineInterpolator;
-import org.apache.commons.math3.analysis.interpolation.BicubicSplineInterpolatingFunction;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.Float;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.app.ListActivity;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -23,8 +14,9 @@ import android.widget.ListView;
 public class LaunchActivity extends ListActivity {
 	
 	private static final int DEAD_RECKONING_ACTIVITY = 0;
-	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY = 1;
-	private static final int SENSOR_LOGGER_ACTIVITY = 2;
+	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS = 1;
+	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY_KALMAN = 2;
+	private static final int SENSOR_LOGGER_ACTIVITY = 3;
 	private static final String TAG = "LaunchActivity";
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -38,17 +30,25 @@ public class LaunchActivity extends ListActivity {
 	protected void onListItemClick(ListView l, View v, int position, long id) {
 		super.onListItemClick(l, v, position, id);
 		
-		Intent launchIntent = new Intent(this, DeadReckoningActivity.class);;
+		Intent launchIntent = new Intent(this, DeadReckoningActivity.class);
+		
 		System.out.println("a");
 		switch(position) {
 		case DEAD_RECKONING_ACTIVITY:			
 			startActivityForResult(launchIntent, DEAD_RECKONING_ACTIVITY);
 			break;
 		
-	    case PARTICLE_FILTER_RECKONING_ACTIVITY:
+	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS:
 	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
-	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY);
+	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_RECKONING_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
+	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS);
 			break;			
+			
+	    case PARTICLE_FILTER_RECKONING_ACTIVITY_KALMAN:
+	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
+	    	launchIntent.putExtra(ParticleFilteringActivity.KEY_RECKONING_METHOD, ParticleFilteringActivity.PF_RECKONING_KALMAN);
+	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_KALMAN);
+	    	break;
 			
 		case SENSOR_LOGGER_ACTIVITY:
 			launchIntent = new Intent(this, SensorLoggerActivity.class);
