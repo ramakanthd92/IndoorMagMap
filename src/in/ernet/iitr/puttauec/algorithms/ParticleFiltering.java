@@ -24,14 +24,14 @@ import android.util.Log;
 public class ParticleFiltering extends DeadReckoning {
 	   //constants
        private static final String TAG = "PaicleFilterReckoning";
-	   public static final int DEFAULT_PARTICLE_COUNT = 50; //1000 //2000
+	   public static final int DEFAULT_PARTICLE_COUNT = 600; //1000 //2000
 	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 150; // 400  //600 //800 //1000 //1500 
-	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 3900; //2000 //10000  //15000
-	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 110; //2000 //10000  //15000
+	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 4000; //2000 //10000  //15000
+	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 90; //2000 //10000  //15000
 	   private static final double INIT_SD_X = 0.4;
 	   private static final double INIT_SD_Y = 0.4;	  
-	   private static final double X_SD = 3.0;
-	   private static final double Y_SD = 3.0;	   	  
+	   private static final double X_SD = 1.2;
+	   private static final double Y_SD = 1.2;	   	  
 	   private static final double  minX  = 0.0  ; 
 	   private static  double  maxX  = 16.0 ;  
 	   private static final double  minY  = 0.0 ;  
@@ -95,7 +95,7 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static double step_act = 0.0;
 	   private final int floorPlanHeight;
 	   private final int floorPlanWidth;
-	   private float transitionCost = 0.f;	
+	   private float Cost = 0.f;	
 	   
   public class Pose
   { 	public double x;
@@ -140,7 +140,7 @@ public class ParticleFiltering extends DeadReckoning {
     		{  	x = x_co;
     			y = y_co;
     		}	 
-    	public void move(double step_size, double rad_angle, double theta_a)
+    	public void move(double step_size, double rad_angle,double theta_a)
     		{   step_act = step_size + mstepNoise*rand.nextGaussian();
     		 	angle = rad_angle + theta_noise + theta_a;
                 angle %= (Math.PI*2);
@@ -168,7 +168,7 @@ public class ParticleFiltering extends DeadReckoning {
     */  
 		public ParticleFiltering(Context ctx, IAngleAlgorithm algorithm) {
 			super(ctx);   
-			mFloorPlan = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.library);
+			mFloorPlan = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.library4);
 			mFloorPlan = mFloorPlan.copy(Config.ARGB_8888, true);
 	        //TODO: Incorporate the Barcode Scanner to identify the path way.
 	 	    String json_obj_0 = loadJSONFromAsset(ctx,"data-west-6.json");
@@ -318,23 +318,35 @@ public class ParticleFiltering extends DeadReckoning {
 			
 			System.out.println("update");
 			inside_particles = new Particle[particles.length];
-			oldParticles = particles.clone();
+			oldParticles = new Particle[particles.length];
 			Particle lost = new Particle(0.0,0.0,1.0);					
 			len = particles.length;
 			double px, py ,est,act;	
+			double max_weight = 0.0;
+			double max_distance = 0.0;
+			double h,k;
 			orien = 0.0;
 			int in_len = 0;
 			int out_len = 0;
-			System.out.println(lost);			
 			for(int i = 0; i < particleCount ; ++i) {
-				particles[i].move(step_size,rad_angle,4*theta_adj);
+				oldParticles[i] = new Particle(particles[i]);
+			}
+		//	System.out.println(lost);			
+			for(int i = 0; i < particleCount ; ++i) {							
+				particles[i].move(step_size,rad_angle,theta_adj);
+				System.out.println("cloned particles" + oldParticles[i]);
+				System.out.println("particles" + particles[i]);				
+				orien += angle;
 				px = particles[i].x;
-				py = particles[i].y;				
-				transitionCost = transitionCost(particles[i]);
+				py = particles[i].y;		
+				max_weight = 0.0;
+			//	System.out.println(oldParticles[i]);
+			//	System.out.println(particles[i]);
+				Cost = transitionCost(oldParticles[i],particles[i]);
 				act = measurement[0]*measurement[0] + measurement[1]*measurement[1] +measurement[2]*measurement[2];			   	
-				if(Math.abs(transitionCost) < 1e-4) {
+				if(Math.abs(Cost) < 1e-4) {
 					// Particle doesn't cross walls
-				  System.out.println("inside_particles" + particles[i]);						
+				//  System.out.println("inside_particles" + particles[i]);						
 				  if(px >= 0.0 && px <= maxX && py >= 0.0 && py <=maxY)
 				   { inside_particles[in_len]  = particles[i];
 				     inside_particles[in_len].importance_weight = 1.0;
@@ -357,36 +369,40 @@ public class ParticleFiltering extends DeadReckoning {
 						    est = position[0]*position[0] + position[1]*position[1] + position[2]*position[2];
 						   	inside_particles[in_len].importance_weight *= Gaussian(est,msenseNoise,act);
 						}	
-					 in_len++;
+					 max_weight = Math.max(max_weight,inside_particles[in_len].importance_weight);
+					 in_len++;					 					 
 				   }			   
 				}
 				else
-				{   System.out.println("out_particles" + particles[i]);
+				{  // System.out.println("out_particles" + particles[i]);
 					lost.x += particles[i].x;
 				    lost.y += particles[i].y;
 				    out_len++;					
 				}				
 			 }
-			System.out.println("in_len" + in_len);
+			
+//			System.out.println("Particles \n" +particles);
+		
+			orien /= len;
+		//	System.out.println("in_len" + in_len);
 			if(out_len != 0)
 			{	lost.x /= out_len;
 				lost.y /= out_len;
 			}
-			System.out.println(lost);
+		//	System.out.println(lost);
 			double[] distance = new double[in_len] ;
-			double max_distance = 1.0,h,k;
+			max_distance = 0.0;
+						
 			for(int i = 0; i < in_len; ++i) {
 				     h = (lost.x-inside_particles[i].x);
 				     k = (lost.y-inside_particles[i].y);
 				     distance[i] = Math.sqrt(h*h + k*k);
-					 max_distance = Math.max(max_distance,distance[i]);     				
+				     max_distance = Math.max(max_distance,distance[i]);     				
 				}
 			for(int i = 0; i < in_len; ++i) {				
-					inside_particles[i].importance_weight +=  distance[i]/max_distance;
-					System.out.println(inside_particles[i]);					
-			}						
-			
-			
+				    inside_particles[i].importance_weight /=  max_weight;
+				    inside_particles[i].importance_weight +=  distance[i]/max_distance;
+			}									
 			if(in_len > 0) {
 				normalizeWeights(in_len);		
 				for(int j = 0; j < particleCount; ++j) {						
@@ -397,9 +413,11 @@ public class ParticleFiltering extends DeadReckoning {
 					// Resampling stage: don't go here unless you get lost!!!
 					// Retry with lesser accuracy particles
 					for(int i = 0; i < particleCount; ++i) {
-						Particle disturbedParticle = new Particle(oldParticles[i].x + X_SD*rand.nextGaussian(), oldParticles[i].y + Y_SD*rand.nextGaussian(),oldParticles[i].importance_weight);						
-						while(transitionCost(disturbedParticle) > MAX_ACCEPTABLE_TRANSITION_COST)
-						{ disturbedParticle = new Particle(oldParticles[i].x + X_SD*rand.nextGaussian(), oldParticles[i].y + Y_SD*rand.nextGaussian(),oldParticles[i].importance_weight);							
+						Particle disturbedParticle = new Particle(oldParticles[i].x + (X_SD*rand.nextGaussian()), oldParticles[i].y + (Y_SD*rand.nextGaussian()),oldParticles[i].importance_weight);
+						System.out.println(" old  = " + oldParticles[i]);
+						System.out.println(" distributed  = " + disturbedParticle);
+						while( transitionCost(oldParticles[i], disturbedParticle) > MAX_ACCEPTABLE_TRANSITION_COST)
+						{ disturbedParticle = new Particle(oldParticles[i].x + (X_SD*rand.nextGaussian()), oldParticles[i].y + (Y_SD*rand.nextGaussian()),oldParticles[i].importance_weight);							
 						}
 						particles[i] = disturbedParticle;
 					}
@@ -414,7 +432,7 @@ public class ParticleFiltering extends DeadReckoning {
 			mmse = minimumMeanSquareDistance();			
 			if(this.isLogging()) {
 				try {
-					mMMSEDistanceFileWriter.write("" + particleCount + "," + mmse + "," + getLocation()[0]  + "," + getLocation()[1] +"," + position[0] +"," +  position[1] +"," + position[2] +"," + measurement[0] +"," +  measurement[1] +"," + measurement[2] + "," + turn_angle + "," + theta_adj + "," + in_len + "\n"  );			
+					mMMSEDistanceFileWriter.write("" + particleCount + "," + mmse + "," + getLocation()[0]  + "," + getLocation()[1] +"," + position[0] +"," +  position[1] +"," + position[2] +"," + measurement[0] +"," +  measurement[1] +"," + measurement[2] + "," + turn_angle + "," + theta_adj + "," + in_len + "," + orien + "\n");			
 					Log.d(TAG,"turn " + String.valueOf(turn_angle));
 					Log.d(TAG,"orien " + String.valueOf(orien));
 
@@ -424,7 +442,60 @@ public class ParticleFiltering extends DeadReckoning {
 			    }
 			}
       }
-/*		private float transitionCost(Particle particle, Particle newParticle) {
+		
+		private float transitionCost(Particle oldParticle, Particle newParticle) {
+			
+			double newParticleX = newParticle.x;
+			double newParticleY = newParticle.y;
+			int pixel,x,y;			                            // (x2-x1)*(y-y1) = (y2-y1)*(x-x1) 			
+			double oldParticleX = oldParticle.x;                  
+			double oldParticleY = oldParticle.y;
+						
+			newParticleX = newParticleX/getmMapWidth();
+			newParticleY = newParticleY/getmMapHeight();
+
+			oldParticleX = oldParticleX/getmMapWidth();
+			oldParticleY = oldParticleY/getmMapHeight();
+			
+			double deltaX = (newParticleX*floorPlanWidth-oldParticleX*floorPlanWidth);
+			double deltaY = (newParticleY*floorPlanHeight-oldParticleY*floorPlanHeight);						
+
+			double startX = (oldParticleX*floorPlanWidth);
+			double startY = (oldParticleY*floorPlanHeight);						
+			int numSteps = (int) Math.round(Math.max(Math.abs(deltaX),Math.abs(deltaY)));
+			
+			if(numSteps != 0)
+			{  deltaX /= numSteps; 
+			   deltaY /= numSteps;
+			}
+			int maxRed = 0;
+			
+		//	System.out.println("[ deltaX = " + deltaX + " deltaY = " + deltaY + "]");
+		//	System.out.println("[ startX = " + startX + " startY = " + startY + "]");
+		
+			for(int step = 0 ; step < numSteps; step++)
+			{	x = (int) Math.round( startX+ step*deltaX);
+				y = (int) Math.round( startY + step*deltaY);			
+				System.out.println("[ X = " + x + " Y = " + y + "]");
+				if(x >= 0 && x < floorPlanWidth && y >= 0 && y < floorPlanHeight) {
+					pixel = mFloorPlan.getPixel(x,y);				
+					maxRed = Math.max(maxRed,Color.red(pixel));
+					System.out.println("[ maxRed = " + maxRed +"]");
+					if(maxRed == 255)
+					{ return maxRed/255.0f;}
+				}		
+				else 
+				{//   System.out.println("[ x or y is out of bounds]");
+					return 1.0f; 				
+				}
+			}
+	//		System.out.println(oldParticle + "-->" + newParticle);
+	//		System.out.println("[These are valid transitions]");
+	//		System.out.println("[ ]");
+			return (maxRed/255.0f);
+		}
+
+	/*	private float transitionCost(Particle particle, Particle newParticle) {
 			double newParticleX = newParticle.x;
 			double newParticleY = newParticle.y;
 			double ParticleX = particle.x/getmMapWidth();
@@ -489,22 +560,6 @@ public class ParticleFiltering extends DeadReckoning {
 			return maxRed/255.0f;
 		}
   */
-		private float transitionCost(Particle newParticle) {
-			double newParticleX = newParticle.x;
-			double newParticleY = newParticle.y;
-			int pixel,x,y;
-			newParticleX = newParticleX/getmMapWidth();
-			newParticleY = newParticleY/getmMapHeight();
-			x = (int) Math.round(newParticleX*floorPlanWidth);
-			y = (int) Math.round(newParticleY*floorPlanHeight);
-			if(x >= 0 && x < floorPlanWidth && y >= 0 && y < floorPlanHeight) {
-				 pixel = mFloorPlan.getPixel(x,y);				
-			     return	(Color.red(pixel)/255.0f);
-		    }		
-			else 
-			{    return 1.0f; 				
-			}
-		}
 		/** Resampling the particles after measurement probability is used to weight all the particles and normalise all the particle weights.
 		 *  It gives importance to most preferred particles. 
 		 * @return   particle with replacement.
@@ -534,7 +589,7 @@ public class ParticleFiltering extends DeadReckoning {
 		 */
 		private double calculateSums(int len) {
 		    totalSum = 0.0;
-		    System.out.println(len);
+		 //   System.out.println(len);
 			for (int i = 0; i < len; i++) {
 				totalSum += inside_particles[i].importance_weight;
 			//	 Log.e(TAG,String.valueOf(particles[i].importance_weight));	 
@@ -623,7 +678,7 @@ public class ParticleFiltering extends DeadReckoning {
 				}
 			xp /= len;
 			yp /= len;
-			System.out.println(totalWeight);
+			//System.out.println(totalWeight);
 		    Particle pe = new Particle();
 		    pe.set_pos(xp,yp);
 			setLocation(xp,yp);
@@ -660,12 +715,12 @@ public class ParticleFiltering extends DeadReckoning {
 				mTrueMeasurement[0] = mRV[0] * measurement[0] + mRV[1] * measurement[1] + mRV[2] * measurement[2];
 				mTrueMeasurement[1] = mRV[3] * measurement[0] + mRV[4] * measurement[1] + mRV[5] * measurement[2];
 				mTrueMeasurement[2] = mRV[6] * measurement[0] + mRV[7] * measurement[1] + mRV[8] * measurement[2];	
-				System.out.print(measurement[0]);
+			/*	System.out.print(measurement[0]);
 				System.out.println(mTrueMeasurement[0]);
 				System.out.print(measurement[1]);
 				System.out.println(mTrueMeasurement[1]);
 				System.out.print(measurement[2]);
-				System.out.println(mTrueMeasurement[2]);
+				System.out.println(mTrueMeasurement[2]);*/
 		     }
 			else 
 			{   mTrueMeasurement[0] = measurement[0];
@@ -760,9 +815,7 @@ public class ParticleFiltering extends DeadReckoning {
 			
 		public void setTurnNoise (float tun) {
 			  mturnNoise = (double)(tun/mul);
-		}
-	
-		
+		}		
 		public float getParticleCount () {
 		   return ((float)particleCount);
 		}
