@@ -24,14 +24,14 @@ import android.util.Log;
 public class ParticleFiltering extends DeadReckoning {
 	   //constants
        private static final String TAG = "PaicleFilterReckoning";
-	   public static final int DEFAULT_PARTICLE_COUNT = 600; //1000 //2000
-	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 150; // 400  //600 //800 //1000 //1500 
+	   public static final int DEFAULT_PARTICLE_COUNT = 100; //1000 //2000
+	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 200; // 400  //600 //800 //1000 //1500 
 	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 4000; //2000 //10000  //15000
 	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 90; //2000 //10000  //15000
 	   private static final double INIT_SD_X = 0.4;
 	   private static final double INIT_SD_Y = 0.4;	  
-	   private static final double X_SD = 1.2;
-	   private static final double Y_SD = 1.2;	   	  
+	   private static final double X_SD = 1.4;
+	   private static final double Y_SD = 1.4;	   	  
 	   private static final double  minX  = 0.0  ; 
 	   private static  double  maxX  = 16.0 ;  
 	   private static final double  minY  = 0.0 ;  
@@ -390,19 +390,19 @@ public class ParticleFiltering extends DeadReckoning {
 				lost.y /= out_len;
 			}
 		//	System.out.println(lost);
-			double[] distance = new double[in_len] ;
-			max_distance = 0.0;
+	//		double[] distance = new double[in_len] ;
+	//		max_distance = 0.0;
 						
-			for(int i = 0; i < in_len; ++i) {
-				     h = (lost.x-inside_particles[i].x);
-				     k = (lost.y-inside_particles[i].y);
-				     distance[i] = Math.sqrt(h*h + k*k);
-				     max_distance = Math.max(max_distance,distance[i]);     				
-				}
-			for(int i = 0; i < in_len; ++i) {				
-				    inside_particles[i].importance_weight /=  max_weight;
-				    inside_particles[i].importance_weight +=  distance[i]/max_distance;
-			}									
+	//		for(int i = 0; i < in_len; ++i) {
+	//			     h = (lost.x-inside_particles[i].x);
+	//			     k = (lost.y-inside_particles[i].y);
+	//			     distance[i] = Math.sqrt(h*h + k*k);
+	//			     max_distance = Math.max(max_distance,distance[i]);     				
+	//			}
+	//		for(int i = 0; i < in_len; ++i) {				
+	//			    inside_particles[i].importance_weight /=  max_weight;
+	//			    inside_particles[i].importance_weight +=  distance[i]/max_distance;
+	//		}									
 			if(in_len > 0) {
 				normalizeWeights(in_len);		
 				for(int j = 0; j < particleCount; ++j) {						
@@ -462,14 +462,29 @@ public class ParticleFiltering extends DeadReckoning {
 
 			double startX = (oldParticleX*floorPlanWidth);
 			double startY = (oldParticleY*floorPlanHeight);						
-			int numSteps = (int) Math.round(Math.max(Math.abs(deltaX),Math.abs(deltaY)));
 			
+			double stopX = (newParticleX*floorPlanWidth);
+			double stopY = (newParticleY*floorPlanHeight);						
+			int maxRed = 0;
+			x = (int) Math.round(stopX);
+			y = (int) Math.round(stopY);
+			if(x >= 0 && x < floorPlanWidth && y >= 0 && y < floorPlanHeight) 
+			{ 	pixel = mFloorPlan.getPixel(x,y);
+			    maxRed = Color.red(pixel); 
+				if( maxRed == 255)
+				  { return maxRed/255.0f;}
+			}		
+			else 
+			{//   System.out.println("[ x or y is out of bounds]");
+				return 1.0f; 				
+			}					
+			int numSteps = (int) Math.round(Math.max(Math.abs(deltaX),Math.abs(deltaY)));			
 			if(numSteps != 0)
 			{  deltaX /= numSteps; 
 			   deltaY /= numSteps;
 			}
-			int maxRed = 0;
-			
+		    maxRed = 0;			
+
 		//	System.out.println("[ deltaX = " + deltaX + " deltaY = " + deltaY + "]");
 		//	System.out.println("[ startX = " + startX + " startY = " + startY + "]");
 		
