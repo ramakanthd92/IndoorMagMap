@@ -1,5 +1,15 @@
 package in.ernet.iitr.puttauec.ui;
 
+import in.ernet.iitr.puttauec.R;
+import in.ernet.iitr.puttauec.algorithms.AHRS;
+import in.ernet.iitr.puttauec.algorithms.DeadReckoning;
+import in.ernet.iitr.puttauec.algorithms.ParticleFiltering;
+import in.ernet.iitr.puttauec.algorithms.ParticleFilteringAHRSMag;
+import in.ernet.iitr.puttauec.algorithms.ParticleFilteringAHRSMagMap;
+import in.ernet.iitr.puttauec.algorithms.ParticleFilteringAHRSMap;
+import in.ernet.iitr.puttauec.algorithms.ParticleFilteringAHRSVec;
+import in.ernet.iitr.puttauec.algorithms.ParticleFilteringKalman;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -9,11 +19,6 @@ import java.util.Date;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import in.ernet.iitr.puttauec.algorithms.AHRS;
-import in.ernet.iitr.puttauec.algorithms.KalmanFilter;
-import in.ernet.iitr.puttauec.R;
-import in.ernet.iitr.puttauec.algorithms.ParticleFiltering;
-import in.ernet.iitr.puttauec.algorithms.DeadReckoning;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -31,9 +36,8 @@ import android.widget.Toast;
 
 public class ParticleFilteringActivity extends Activity {
    
-	private ParticleFiltering mDeadReckoning;
+	private DeadReckoning mDeadReckoning;		
 	private static final String TAG = "ParticleFilterReckoningActivity";
-	
 	private static final String MAP_POINT = "MapPoint";
 	private static final String KEY_QR_TYPE = "Type";
 	private static final int DEAD_RECKONING_TRAINING_CONSTANT = Menu.FIRST;
@@ -44,17 +48,15 @@ public class ParticleFilteringActivity extends Activity {
 	private static final int PARFIL_RECKONING_STEP_SIZE_ESTIMATE = Menu.FIRST + 5;
 	private static final int PARFIL_RECKONING_LOG_PATH = Menu.FIRST + 6;
 	
-	public static final int PF_RECKONING_AHRS = 1;
-	public static final int PF_RECKONING_KALMAN = 2;
-	public static final int PF_RECKONING_VECTOR = 3;
-	public static final int PF_RECKONING_MAGNITUDE = 4;
-	public static final int PF_RECKONING_MAP_USED = 5;
-	public static final int PF_RECKONING_MAP_NOT_USED = 6;
+	public static final int PF_RECKONING_AHRS_VECTOR_MAP = 1;
+	public static final int PF_RECKONING_AHRS_MAGNITUDE_MAP = 2;
+	public static final int PF_RECKONING_KALMAN = 3;
+	public static final int PF_RECKONING_AHRS_MAGNITUDE = 4;
+	public static final int PF_RECKONING_AHRS_VECTOR = 5;
+	public static final int PF_RECKONING_AHRS_MAP = 6;
 	
-	public static final String KEY_ANGLE_METHOD = "KeyReckoningMethod";
-	public static final String KEY_MAGNETIC_FIELD_METHOD = "KeyMagneticFieldMethod";
-	public static final String KEY_MAP_METHOD = "KeyMapMethod";
-
+	public static final String KEY_RECKONING_METHOD = "KeyReckoningMethod";
+	
 	// Constants for QRCode data
 	private static final String KEY_VERSION = "Version";
 	private static final int MIN_QRCODE_VERSION = 0x1;
@@ -63,20 +65,35 @@ public class ParticleFilteringActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);		
 		setContentView(R.layout.activity_particle_filtering);
-	    int reckon_method = getIntent().getIntExtra(KEY_ANGLE_METHOD, PF_RECKONING_AHRS);		
-	    int field_method = getIntent().getIntExtra(KEY_MAGNETIC_FIELD_METHOD, PF_RECKONING_MAGNITUDE);
-	    int map_method = getIntent().getIntExtra(KEY_MAP_METHOD, PF_RECKONING_MAP_USED);
-	    
-	    Log.i(TAG, "Starting PFReckoningActivity with angle estimation method: " + reckon_method);
-	    Log.i(TAG, "Starting PFReckoningActivity with field estimation method: " + field_method);
-	    Log.i(TAG, "Starting PFReckoningActivity with map estimation method: " + map_method);
-		switch(reckon_method) {		
-		case PF_RECKONING_AHRS:
+	    int method = getIntent().getIntExtra(KEY_RECKONING_METHOD, PF_RECKONING_AHRS_VECTOR_MAP);		
+	    Log.i(TAG, "Starting PFReckoningActivity with map estimation method: " + method);
+		
+	    switch(method) {		    
+		case PF_RECKONING_AHRS_VECTOR_MAP:
+			System.out.println("a");								
 			mDeadReckoning = new ParticleFiltering(this, new AHRS());
+			System.out.println("b");
 			break;
-		case PF_RECKONING_KALMAN:	
-			mDeadReckoning = new ParticleFiltering(this, new KalmanFilter());
-			break;		
+
+		case PF_RECKONING_AHRS_MAGNITUDE_MAP:
+			mDeadReckoning = new ParticleFilteringAHRSMagMap(this, new AHRS());
+			break;
+		
+		case PF_RECKONING_KALMAN:
+			mDeadReckoning = new ParticleFilteringKalman(this, new AHRS());
+			break;
+		
+		case PF_RECKONING_AHRS_MAGNITUDE:
+			mDeadReckoning = new ParticleFilteringAHRSMag(this, new AHRS());
+			break;
+		
+		case PF_RECKONING_AHRS_VECTOR:
+			mDeadReckoning = new ParticleFilteringAHRSVec(this, new AHRS());
+			break;
+		
+		case PF_RECKONING_AHRS_MAP:
+			mDeadReckoning = new ParticleFilteringAHRSMap(this, new AHRS());
+			break;
 		}			
 	    intent = new Intent(this, BroadcastService.class);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);

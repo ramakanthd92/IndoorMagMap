@@ -21,16 +21,16 @@ import android.text.format.DateFormat;
 import android.util.Log;
 
 
-public class ParticleFiltering extends DeadReckoning {
-	   //constants  
+public class ParticleFilteringKalman extends DeadReckoning {
+	   //constants
 	   private static final String TAG = "PaicleFilterReckoning";
 	   public static final int DEFAULT_PARTICLE_COUNT = 100; //1000 //2000
 	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 200; // 400  //600 //800 //1000 //1500 
 	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 4000; //2000 //10000  //15000
 	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 90; //2000 //10000  //15000
 	   private static final double INIT_SD_X = 0.4;
-	   private static final double INIT_SD_Y = 0.4;
-	   private static final double X_SD = 1.4;	   	  	   
+	   private static final double INIT_SD_Y = 0.4;	  
+	   private static final double X_SD = 1.4;
 	   private static final double Y_SD = 1.4;	   	  
 	   private static final double  minX  = 0.0  ; 
 	   private static  double  maxX  = 16.0 ;  
@@ -45,12 +45,10 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static final Random rand = RandomSingleton.instance;
 	   private double[]  measurement  = {0.0,0.0,0.0};					// Magnetic field in Device Co-ordinate system
 	   private double orien  = 0.0;                                      // avg orientation of the particles to be written to file on each step
-	   private double[][] Ra = {{sigma_2,0.0,0.0},{0.0,sigma_2,0.0},{0.0,0.0,sigma_2}};	      // Co-variance Matrix for Vector Gaussian
 	   private double [] mTrueMeasurement = {0.0,0.0,0.0};					// Magnetic field in Global co-ordinate system
-	   private double [] mRV = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};	// Rotation Vector for local Rotation method used during each update location call.  
-	   private double[] position  = {0.0,0.0,0.0};						// Magnetic field vector at any position (x,y) of the particles estimated from Interpolation function.
-	   protected MapGenerator magneticmapwx,magneticmapwy,magneticmapwz;    // magnetic field map instances for x,y,z axes readings
-	   protected MapGenerator magneticmapex,magneticmapey,magneticmapez;
+	   private double position  = 0.0;						// Magnetic field vector at any position (x,y) of the particles estimated from Interpolation function.
+	   protected MapGenerator magneticmapwm;    // magnetic field map instances for x,y,z axes readings
+	   protected MapGenerator magneticmapem;
 	   protected Particle[] particles ;									 // All particles after re-sampling or after moving
 	   protected Particle[] inside_particles ;                           // particles that were not lost in indoor map
 	   protected Particle[] oldParticles;						         // particles before movement
@@ -58,11 +56,7 @@ public class ParticleFiltering extends DeadReckoning {
 	   private double magnitude;										 // magnitude to be written to Magnetic field log.
 	   private double angle;                                             // angle updated by different particles
 	   private double theta_adj;										 // adjustment angle based on the particles lost in the previosu step
-	   private  Matrix RM = new Matrix(Ra);								 
-	   private double[][] MU_ARR = {{0.f,0.f,0.f}};						
-       private double[][] Z_ARR = {{0.f,0.f,0.f}};   
-       private  Matrix Rinv = RM.inverse();
-
+	   
        //Control parameters        
 	   private static int particleCount = DEFAULT_PARTICLE_COUNT;       
 	   private static double msenseNoise = DEFAULT_SENSE_NOISE_THRESHOLD/1000.f;    // Step Noise for the particles used in dynamical equation.  Reduce this to a mimimum to reduce error in path length.  
@@ -93,8 +87,6 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static double yp = 0.0;
 	   private static double den = 0.0;
 	   private static double step_act = 0.0;
-	   private final int floorPlanHeight;
-	   private final int floorPlanWidth;
 	   private float Cost = 0.f;	
 	   
 public class Particle
@@ -153,42 +145,21 @@ public class Particle
 		 * @param context
 		 * @param algorithm
 		 */
-		public ParticleFiltering(Context ctx, IAngleAlgorithm algorithm) {
+		public ParticleFilteringKalman(Context ctx, IAngleAlgorithm algorithm) {
 			super(ctx);   
 			//Load the indoor Map
-			mFloorPlan = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.library4);
-			mFloorPlan = mFloorPlan.copy(Config.ARGB_8888, true);
-			
-	 	    String json_obj_0 = loadJSONFromAsset(ctx,"data-west-6.json");
+			String json_obj_0 = loadJSONFromAsset(ctx,"data-west-6.json");
 		    String json_obj_1 = loadJSONFromAsset(ctx,"data-east-6.json");
     		
 		    //Load the Magnetic Map
-		    magneticmapwx = new MapGenerator(json_obj_0, 17,0);
-    		magneticmapwy = new MapGenerator(json_obj_0, 17,1);
-    		magneticmapwz = new MapGenerator(json_obj_0, 17,2);
- 			magneticmapex = new MapGenerator(json_obj_1, 17,0);
- 			magneticmapey = new MapGenerator(json_obj_1, 17,1);
- 			magneticmapez = new MapGenerator(json_obj_1, 17,2);
-			magneticmapwx.run();
-			magneticmapwy.run();
-			magneticmapwz.run();
-	        magneticmapex.run();
-	        magneticmapey.run();
-	        magneticmapez.run();
+		    magneticmapwm = new MapGenerator(json_obj_0, 17,3);
+    		magneticmapem = new MapGenerator(json_obj_1, 17,3);
+ 			magneticmapwm.run();
+			magneticmapem.run();
 	        
 	        //set the Angle Algorithm 
 	        angle_algo = algorithm; 
-	        
-	        // Do a white removal in the Indoor Map (Bit Map)
-			floorPlanWidth = mFloorPlan.getWidth();
-			floorPlanHeight = mFloorPlan.getHeight();
-			for(int x = 0; x < floorPlanWidth; ++x) {
-				for(int y = 0; y < floorPlanHeight; ++y) {
-					if(mFloorPlan.getPixel(x, y) == Color.WHITE)
-						mFloorPlan.setPixel(x, y, Color.WHITE - mFloorPlan.getPixel(x, y));
-				}
-			}	
-		}
+	     }
 	
 		/**
 		 * Loads the magnetic field readings from the JSON file in assets to the string object.		 * 
@@ -230,37 +201,14 @@ public class Particle
 	        return Math.exp(-(mu_x_2 / (sigma_2*2.0))) + 0.0001 ;
 	   }
 	   
-	   /**
-	    * Vector Gaussian form for using with 'm' vector using the particle magnetic field along all 3-axes
-	    * @param mu        particle magnetic field along 3 -axes. 
-	    * @param sigma     sense noise for co-variance
-	    * @param x         magnetic measurement vector
-	    * @return          importance weight.
-	    */
 	   
-	   public double VectorGaussian(double[] mu,double sigma,double[] x)
-	   {    MU_ARR[0][0] = mu[0];
-			MU_ARR[0][1] = mu[1];
-		    MU_ARR[0][2] = mu[2];
-		    Z_ARR[0][0] = x[0];
-			Z_ARR[0][1] = x[1];
-		    Z_ARR[0][2] = x[2];
-		    Matrix MU = new Matrix(MU_ARR);
-	        Matrix Z = new Matrix(Z_ARR);	   
-  	    //  double Rnorm = RM.det();
-	        MU = Z.minus(MU); 	   
-	        Matrix exp_term = MU.times(Rinv);
-            Matrix exp_term_2  = exp_term.times(MU.transpose());   
-            return Math.exp(- 0.5 * exp_term_2.det()) + 0.0001;
-	   }
-	  
 	   /**  init for the particle filter. Initialising the particles and weights CDF
 	    *   Normalise the weights. Log the noise parameters.	     
 	    */
 	   @Override
 	   protected void init() {
-		    super.init();
-	        this.particles = new Particle[particleCount];
+	        super.init();
+			this.particles = new Particle[particleCount];
 			this.inside_particles = new Particle[particleCount];
 			this.weightSums = new double[particleCount + 1];
 		    len = particleCount;
@@ -274,7 +222,7 @@ public class Particle
 			try {
 					String r = (String) (DateFormat.format("yyyy-MM-dd-hh-mm-ss", new java.util.Date()) );
 					String logFileBaseName = "pfLog." + r;
-					mNoiseFileWriter = new FileWriter(new File(SAMPLES_DIR, logFileBaseName + ".noise.csv"));
+					mNoiseFileWriter = new FileWriter(new File(STORAGE_DIR_C, logFileBaseName + ".noise.csv"));
 					mNoiseFileWriter.write(""+ mstepNoise + ","+ msenseNoise +","+ mturnNoise + "," + mAccelThreshold + "," + mTrainingConstant + "\n");
 					mNoiseFileWriter.flush();
 					mNoiseFileWriter.close();					
@@ -328,41 +276,30 @@ public class Particle
 					px = particles[i].x;
 					py = particles[i].y;		
 					max_weight = 0.0;
-					Cost = transitionCost(oldParticles[i],particles[i]);
 					act = measurement[0]*measurement[0] + measurement[1]*measurement[1] +measurement[2]*measurement[2];			   	
-					if(Math.abs(Cost) < 1e-4) 
-					{
-						if(px >= 0.0 && px <= maxX && py >= 0.0 && py <= maxY)
-							{ 
+					if(px >= 0.0 && px <= maxX && py >= 0.0 && py <= maxY)
+						{ 
 								inside_particles[in_len]  = particles[i];
 								inside_particles[in_len].importance_weight = 1.0;
 								if(rad_angle < (-3*Math.PI/4) || rad_angle > 3*Math.PI/4)
 									{  	
-										position[0] = magneticmapex.f.value(px,py);		// X-axis magnetic field of a particle look up from interpolation function. 
-										position[1] = magneticmapey.f.value(px,py);		// Y-axis magnetic field.
-										position[2] = magneticmapez.f.value(px,py);		// Z-axis magnetic field.    					
-										inside_particles[in_len].importance_weight *= VectorGaussian(position,msenseNoise,measurement);    						
+										position = magneticmapem.f.value(px,py);		// X-axis magnetic field of a particle look up from interpolation function. 
+										inside_particles[in_len].importance_weight *= Gaussian(position,msenseNoise,magnitude);    						
 									}
 								else if (rad_angle > (-Math.PI/4) && rad_angle < Math.PI/4)
 									{   
-										position[0] = magneticmapwx.f.value(px,py);		// X-axis magnetic field of a particle look up from interpolation function. 
-										position[1] = magneticmapwy.f.value(px,py);		// Y-axis magnetic field.
-										position[2] = magneticmapwz.f.value(px,py);		// Z-axis magnetic field.    					
-										inside_particles[in_len].importance_weight *= VectorGaussian(position,msenseNoise,measurement);  						
+										position = magneticmapwm.f.value(px,py);		// X-axis magnetic field of a particle look up from interpolation function. 
+										inside_particles[in_len].importance_weight *= Gaussian(position,msenseNoise,magnitude);  						
 									}
 								else
 									{   
-										position[0] = magneticmapex.f.value(px,py);		// X-axis magnetic field of a particle look up from interpolation function. 
-										position[1] = magneticmapey.f.value(px,py);		// Y-axis magnetic field.
-										position[2] = magneticmapez.f.value(px,py);		// Z-axis magnetic field.
-										est = position[0]*position[0] + position[1]*position[1] + position[2]*position[2];
-										inside_particles[in_len].importance_weight *= Gaussian(est,msenseNoise,act);
+										position = magneticmapem.f.value(px,py);		// X-axis magnetic field of a particle look up from interpolation function. 
+										inside_particles[in_len].importance_weight *= Gaussian(position,msenseNoise,magnitude);
 									}	
 								max_weight = Math.max(max_weight,inside_particles[in_len].importance_weight);
 								in_len++;					 					 
 							}			   
-					}								
-			 }
+					}											 
 			orien /= len;
 			if(in_len > 0) 
 				{
@@ -378,7 +315,9 @@ public class Particle
 					// Retry with lesser accuracy particles
 					for(int i = 0; i < particleCount; ++i) {
 						Particle disturbedParticle = new Particle(oldParticles[i].x + (X_SD*rand.nextGaussian()), oldParticles[i].y + (Y_SD*rand.nextGaussian()),oldParticles[i].importance_weight);
-						while( transitionCost(oldParticles[i], disturbedParticle) > MAX_ACCEPTABLE_TRANSITION_COST)
+						px = disturbedParticle.x;
+						py = disturbedParticle.y;
+						while(!(px >= 0.0 && px <= maxX && py >= 0.0 && py <= maxY))
 							{ disturbedParticle = new Particle(oldParticles[i].x + (X_SD*rand.nextGaussian()), oldParticles[i].y + (Y_SD*rand.nextGaussian()),oldParticles[i].importance_weight);							
 							}
 						particles[i] = disturbedParticle;
@@ -399,7 +338,7 @@ public class Particle
 			if(this.isLogging()) 
 				{
 					try {
-							mMMSEDistanceFileWriter.write("" + particleCount + "," + mmse + "," + getLocation()[0]  + "," + getLocation()[1] +"," + position[0] +"," +  position[1] +"," + position[2] +"," + measurement[0] +"," +  measurement[1] +"," + measurement[2] + "," + turn_angle + "," + theta_adj + "," + in_len + "," + orien + "\n");			
+							mMMSEDistanceFileWriter.write("" + particleCount + "," + mmse + "," + getLocation()[0]  + "," + getLocation()[1] +"," + position +"," + measurement[0] +"," +  measurement[1] +"," + measurement[2] + "," + turn_angle + "," + theta_adj + "," + in_len + "," + orien + "\n");			
 							Log.d(TAG,"turn " + String.valueOf(turn_angle));
 							Log.d(TAG,"orien " + String.valueOf(orien));
 						}
@@ -411,68 +350,7 @@ public class Particle
 				}
 		}
 
-		private float transitionCost(Particle oldParticle, Particle newParticle) 
-		{			
-			double newParticleX = newParticle.x;
-			double newParticleY = newParticle.y;
-			int pixel,x,y;			                            // (x2-x1)*(y-y1) = (y2-y1)*(x-x1) 			
-			double oldParticleX = oldParticle.x;                  
-			double oldParticleY = oldParticle.y;
-						
-			newParticleX = newParticleX/getmMapWidth();
-			newParticleY = newParticleY/getmMapHeight();
-
-			oldParticleX = oldParticleX/getmMapWidth();
-			oldParticleY = oldParticleY/getmMapHeight();
-			
-			double deltaX = (newParticleX*floorPlanWidth-oldParticleX*floorPlanWidth);
-			double deltaY = (newParticleY*floorPlanHeight-oldParticleY*floorPlanHeight);						
-
-			double startX = (oldParticleX*floorPlanWidth);
-			double startY = (oldParticleY*floorPlanHeight);						
-			
-			double stopX = (newParticleX*floorPlanWidth);
-			double stopY = (newParticleY*floorPlanHeight);						
-			int maxRed = 0;
-			
-			x = (int) Math.round(stopX);
-			y = (int) Math.round(stopY);
-			if(x >= 0 && x < floorPlanWidth && y >= 0 && y < floorPlanHeight) 
-			{ 	pixel = mFloorPlan.getPixel(x,y);
-			    maxRed = Color.red(pixel); 
-				if( maxRed == 255)
-				  { return maxRed/255.0f;}
-			}		
-			else 
-			{
-				return 1.0f; 				
-			}					
-			
-			int numSteps = (int) Math.round(Math.max(Math.abs(deltaX),Math.abs(deltaY)));			
-			if(numSteps != 0)
-			{  deltaX /= numSteps; 
-			   deltaY /= numSteps;
-			}
-		    
-			maxRed = 0;			
-			for(int step = 0 ; step < numSteps; step++)
-			{	x = (int) Math.round( startX+ step*deltaX);
-				y = (int) Math.round( startY + step*deltaY);							
-				if(x >= 0 && x < floorPlanWidth && y >= 0 && y < floorPlanHeight) {
-					pixel = mFloorPlan.getPixel(x,y);				
-					maxRed = Math.max(maxRed,Color.red(pixel));					
-					if(maxRed == 255)
-					{ return maxRed/255.0f;}
-				}		
-				else 
-				{
-					return 1.0f; 				
-				}
-			}
-			return (maxRed/255.0f);
-		}
-
-		/** Re-sampling the particles after measurement probability is used to weight all the particles and normalise all the particle weights.
+	  /** Re-sampling the particles after measurement probability is used to weight all the particles and normalise all the particle weights.
 		 *  It gives importance to most preferred particles. 
 		 * @return   particle with replacement.
 		 */
@@ -611,14 +489,6 @@ public class Particle
 			return pe;
 		}
 		
-		/** The True Magnetic field magnitude inGlobal co-ordinate system is calculated from Rotation Matrix obtained from Sensor life cycle manager. 
-		 */
-		private void updateTrueMag (double rad_angle) {			
-				mTrueMeasurement[0] = mRV[0] * measurement[0] + mRV[1] * measurement[1] + mRV[2] * measurement[2];
-				mTrueMeasurement[1] = mRV[3] * measurement[0] + mRV[4] * measurement[1] + mRV[5] * measurement[2];
-				mTrueMeasurement[2] = mRV[6] * measurement[0] + mRV[7] * measurement[1] + mRV[8] * measurement[2];	
-		}
-		
 		public int size() {
 			return particles.length;
 		}
@@ -637,11 +507,10 @@ public class Particle
 			try {
 				String r = (String) (DateFormat.format("yyyy-MM-dd-hh-mm-ss", new java.util.Date()) );
 				String logFileBaseName = "pfLog." + r;
-				System.out.println(STORAGE_DIR_A);
-				mAccelLogFileWriter = new FileWriter(new File(STORAGE_DIR_A, logFileBaseName + ".accel.csv"));
-				mMMSEDistanceFileWriter = new FileWriter(new File(STORAGE_DIR_A, logFileBaseName + ".mmse.csv"));
-				mMagLogFileWriter = new FileWriter(new File(STORAGE_DIR_A, logFileBaseName + ".mag.csv"));
-				mStepLogFileWriter = new FileWriter(new File(STORAGE_DIR_A, logFileBaseName + ".pfsteps.csv"));
+				mAccelLogFileWriter = new FileWriter(new File(STORAGE_DIR_C, logFileBaseName + ".accel.csv"));
+				mMMSEDistanceFileWriter = new FileWriter(new File(STORAGE_DIR_C, logFileBaseName + ".mmse.csv"));
+				mMagLogFileWriter = new FileWriter(new File(STORAGE_DIR_C, logFileBaseName + ".mag.csv"));
+				mStepLogFileWriter = new FileWriter(new File(STORAGE_DIR_C, logFileBaseName + ".pfsteps.csv"));
 			} catch (IOException e) {
 				Log.e(TAG, "Creating and opening log files failed!", e);
 				e.printStackTrace();
@@ -692,48 +561,38 @@ public class Particle
 			}
 		}			
 	
-		@Override
 		public void setParticleCount (float pc) {
 			 particleCount = (int) pc;
 		}
 		    
-		@Override
 		public void setSenseNoise (float sen) {
 			  msenseNoise = (double)sen;
 		}
 			
-		@Override
 		public void setStepNoise (float ste) {
 			  mstepNoise = (double)ste;
 		}
 			
-		@Override
 		public void setTurnNoise (float tun) {
 			  mturnNoise = (double)(tun/mul);
 		}		
-		
-		@Override
 		public float getParticleCount () {
 		   return ((float)particleCount);
 		}
 	    
-		@Override
 		public float getSenseNoise () {
 			return ((float)msenseNoise);
 		}
 		
-		@Override
 		public float getStepNoise () {
 			return ((float)mstepNoise);
 		}
 		
-		@Override
 		public float getTurnNoise () {
 			return ((float)(mul*mturnNoise));
 			
 		}
 		
-		@Override
 		public double getMMSE() {
 			return  mmse;
 		}

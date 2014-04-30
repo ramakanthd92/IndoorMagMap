@@ -23,14 +23,23 @@ import android.util.Log;
 
 public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm, IReckoningMethod {
 	// Constants
-	protected static final String SAMPLES_DIR = Environment.getExternalStorageDirectory() + File.separator + "samples";
+	protected static final String SAMPLES_DIR = Environment.getExternalStorageDirectory() + File.separator + "samples_exp";
+	protected static final String STORAGE_DIR_A = DeadReckoning.SAMPLES_DIR + File.separator + "pfah_ve_mp";	
+	protected static final String STORAGE_DIR_B = DeadReckoning.SAMPLES_DIR + File.separator + "pfah_mg_mp";
+	protected static final String STORAGE_DIR_C = DeadReckoning.SAMPLES_DIR + File.separator + "pfkm";
+	protected static final String STORAGE_DIR_D = DeadReckoning.SAMPLES_DIR + File.separator + "pfah_ve";
+	protected static final String STORAGE_DIR_E = DeadReckoning.SAMPLES_DIR + File.separator + "pfah_mg";
+	protected static final String STORAGE_DIR_F = DeadReckoning.SAMPLES_DIR + File.separator + "pfah_mp";
+	     
+	protected String STORAGE_DIR = SAMPLES_DIR + File.separator + "dr";
 	private static final int DEFAULT_MAP_HEIGHT = 26;
 	private static final int DEFAULT_MAP_WIDTH = 16;
 	private static final int MAX_HISTORY_SIZE = 10;
 	private static final String TAG = "DeadReckoning";
 	private static final int PEAK_HUNT = 0;
 	private static final int VALLEY_HUNT = 1;
-
+    protected static double mmse;
+	
 	// These constants are expected to be divided by 1000 before use
 	public static final int DEFAULT_TRAINING_CONSTANT = 770; // 5200; // 3300; // 1937;
 	public static final int DEFAULT_ACCEL_THRESHOLD = 1300; // 1840; //1300 /1400 //1500 
@@ -511,8 +520,9 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
 		try {
 			String r = (String) (DateFormat.format("yyyy-MM-dd-hh-mm-ss", new java.util.Date()) );
 			String logFileBaseName = "drLog." + r;
-			mAccelLogFileWriter = new FileWriter(new File(SAMPLES_DIR, logFileBaseName + ".accel.csv"));
-			mStepLogFileWriter = new FileWriter(new File(SAMPLES_DIR, logFileBaseName + ".steps.csv"));
+			System.out.println(STORAGE_DIR);
+			mAccelLogFileWriter = new FileWriter(new File(STORAGE_DIR, logFileBaseName + ".accel.csv"));
+			mStepLogFileWriter = new FileWriter(new File(STORAGE_DIR, logFileBaseName + ".steps.csv"));
 		} catch (IOException e) {
 			Log.e(TAG, "Creating and opening log files failed!", e);
 			e.printStackTrace();
@@ -543,5 +553,46 @@ public class DeadReckoning extends DefaultSensorCallbacks implements IAlgorithm,
        gyroOri[2] = (float) ((Math.atan2(2.0 * (q2*q3 - q0*q1),(2*(q0*q0 + q3*q3)-1)))); 
 	}
 	
+
+	@Override
+	public void setParticleCount (float pc) {
+	}
+	    
+	@Override
+	public void setSenseNoise (float sen) {
+	}
+		
+	@Override
+	public void setStepNoise (float ste) {
+	}
+		
+	@Override
+	public void setTurnNoise (float tun) {
+	}		
+	
+	@Override
+	public float getParticleCount () {
+	   return 0.f;
+	}
+  
+	@Override
+	public float getSenseNoise () {
+		return 0.f;
+	}
+	
+	@Override
+	public float getStepNoise () {
+		return 0.f;
+	}
+	
+	@Override
+	public float getTurnNoise () {
+		return 0.f;
+		
+	}
+	@Override
+	public double getMMSE() {
+		return  0.0;
+	}
 }
 

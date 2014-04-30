@@ -37,7 +37,6 @@ public class LaunchActivity extends ListActivity {
 		
 		Intent launchIntent = new Intent(this, DeadReckoningActivity.class);
 		
-		System.out.println("a");
 		switch(position) {
 		case DEAD_RECKONING_ACTIVITY:			
 			startActivityForResult(launchIntent, DEAD_RECKONING_ACTIVITY);
@@ -45,37 +44,37 @@ public class LaunchActivity extends ListActivity {
 		
 	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_VECTOR_MAP:
 	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
-	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
+	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_RECKONING_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS_VECTOR_MAP);	
 	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_VECTOR_MAP);
 			break;			
 
 	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAGNITUDE_MAP:
 	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
-	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
+	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_RECKONING_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS_MAGNITUDE_MAP);	
 	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAGNITUDE_MAP);
 			break;			
 		
 	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_VECTOR:
 	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
-	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
+	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_RECKONING_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS_VECTOR);	
 	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_VECTOR);
 			break;			
 	    
 	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAGNITUDE:
 	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
-	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
+	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_RECKONING_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS_MAGNITUDE);	
 	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAGNITUDE);
 			break;			
 
 	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAP:
 	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
-	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
+	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_RECKONING_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS_MAP);	
 	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAP);
 			break;			
 		
 	    case PARTICLE_FILTER_RECKONING_ACTIVITY_KALMAN:
 	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
-	    	launchIntent.putExtra(ParticleFilteringActivity.KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_KALMAN);
+	    	launchIntent.putExtra(ParticleFilteringActivity.KEY_RECKONING_METHOD, ParticleFilteringActivity.PF_RECKONING_KALMAN);
 	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_KALMAN);
 	    	break;
 			

@@ -70,4 +70,21 @@ public interface IReckoningMethod {
 
 	public abstract void startLogging();
 
+	public void setParticleCount (float pc);
+	    
+	public void setSenseNoise (float sen); 
+	
+	public void setStepNoise (float ste);	
+	
+	public void setTurnNoise (float tun); 
+	
+	public float getParticleCount ();
+	
+	public float getSenseNoise ();
+	
+	public float getStepNoise ();
+	
+	public float getTurnNoise ();
+	
+	public double getMMSE();
 }

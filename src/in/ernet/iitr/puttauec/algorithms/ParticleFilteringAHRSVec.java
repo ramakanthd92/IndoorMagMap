@@ -21,16 +21,16 @@ import android.text.format.DateFormat;
 import android.util.Log;
 
 
-public class ParticleFiltering extends DeadReckoning {
-	   //constants  
-	   private static final String TAG = "PaicleFilterReckoning";
+public class ParticleFilteringAHRSVec extends DeadReckoning {
+	   //constants
+	    private static final String TAG = "PaicleFilterReckoning";
 	   public static final int DEFAULT_PARTICLE_COUNT = 100; //1000 //2000
 	   public static final int DEFAULT_STEP_NOISE_THRESHOLD = 200; // 400  //600 //800 //1000 //1500 
 	   public static final int DEFAULT_SENSE_NOISE_THRESHOLD = 4000; //2000 //10000  //15000
 	   public static final int DEFAULT_TURN_NOISE_THRESHOLD = 90; //2000 //10000  //15000
 	   private static final double INIT_SD_X = 0.4;
-	   private static final double INIT_SD_Y = 0.4;
-	   private static final double X_SD = 1.4;	   	  	   
+	   private static final double INIT_SD_Y = 0.4;	  
+	   private static final double X_SD = 1.4;
 	   private static final double Y_SD = 1.4;	   	  
 	   private static final double  minX  = 0.0  ; 
 	   private static  double  maxX  = 16.0 ;  
@@ -93,8 +93,6 @@ public class ParticleFiltering extends DeadReckoning {
 	   private static double yp = 0.0;
 	   private static double den = 0.0;
 	   private static double step_act = 0.0;
-	   private final int floorPlanHeight;
-	   private final int floorPlanWidth;
 	   private float Cost = 0.f;	
 	   
 public class Particle
@@ -153,13 +151,10 @@ public class Particle
 		 * @param context
 		 * @param algorithm
 		 */
-		public ParticleFiltering(Context ctx, IAngleAlgorithm algorithm) {
+		public ParticleFilteringAHRSVec(Context ctx, IAngleAlgorithm algorithm) {
 			super(ctx);   
 			//Load the indoor Map
-			mFloorPlan = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.library4);
-			mFloorPlan = mFloorPlan.copy(Config.ARGB_8888, true);
-			
-	 	    String json_obj_0 = loadJSONFromAsset(ctx,"data-west-6.json");
+			String json_obj_0 = loadJSONFromAsset(ctx,"data-west-6.json");
 		    String json_obj_1 = loadJSONFromAsset(ctx,"data-east-6.json");
     		
 		    //Load the Magnetic Map
@@ -178,17 +173,7 @@ public class Particle
 	        
 	        //set the Angle Algorithm 
 	        angle_algo = algorithm; 
-	        
-	        // Do a white removal in the Indoor Map (Bit Map)
-			floorPlanWidth = mFloorPlan.getWidth();
-			floorPlanHeight = mFloorPlan.getHeight();
-			for(int x = 0; x < floorPlanWidth; ++x) {
-				for(int y = 0; y < floorPlanHeight; ++y) {
-					if(mFloorPlan.getPixel(x, y) == Color.WHITE)
-						mFloorPlan.setPixel(x, y, Color.WHITE - mFloorPlan.getPixel(x, y));
-				}
-			}	
-		}
+	     }
 	
 		/**
 		 * Loads the magnetic field readings from the JSON file in assets to the string object.		 * 
@@ -259,8 +244,8 @@ public class Particle
 	    */
 	   @Override
 	   protected void init() {
-		    super.init();
-	        this.particles = new Particle[particleCount];
+	        super.init();
+			this.particles = new Particle[particleCount];
 			this.inside_particles = new Particle[particleCount];
 			this.weightSums = new double[particleCount + 1];
 		    len = particleCount;
@@ -274,7 +259,7 @@ public class Particle
 			try {
 					String r = (String) (DateFormat.format("yyyy-MM-dd-hh-mm-ss", new java.util.Date()) );
 					String logFileBaseName = "pfLog." + r;
-					mNoiseFileWriter = new FileWriter(new File(SAMPLES_DIR, logFileBaseName + ".noise.csv"));
+					mNoiseFileWriter = new FileWriter(new File(STORAGE_DIR_D, logFileBaseName + ".noise.csv"));
 					mNoiseFileWriter.write(""+ mstepNoise + ","+ msenseNoise +","+ mturnNoise + "," + mAccelThreshold + "," + mTrainingConstant + "\n");
 					mNoiseFileWriter.flush();
 					mNoiseFileWriter.close();					
@@ -328,12 +313,9 @@ public class Particle
 					px = particles[i].x;
 					py = particles[i].y;		
 					max_weight = 0.0;
-					Cost = transitionCost(oldParticles[i],particles[i]);
 					act = measurement[0]*measurement[0] + measurement[1]*measurement[1] +measurement[2]*measurement[2];			   	
-					if(Math.abs(Cost) < 1e-4) 
-					{
-						if(px >= 0.0 && px <= maxX && py >= 0.0 && py <= maxY)
-							{ 
+					if(px >= 0.0 && px <= maxX && py >= 0.0 && py <= maxY)
+						{ 
 								inside_particles[in_len]  = particles[i];
 								inside_particles[in_len].importance_weight = 1.0;
 								if(rad_angle < (-3*Math.PI/4) || rad_angle > 3*Math.PI/4)
@@ -361,8 +343,7 @@ public class Particle
 								max_weight = Math.max(max_weight,inside_particles[in_len].importance_weight);
 								in_len++;					 					 
 							}			   
-					}								
-			 }
+					}											 
 			orien /= len;
 			if(in_len > 0) 
 				{
@@ -378,7 +359,9 @@ public class Particle
 					// Retry with lesser accuracy particles
 					for(int i = 0; i < particleCount; ++i) {
 						Particle disturbedParticle = new Particle(oldParticles[i].x + (X_SD*rand.nextGaussian()), oldParticles[i].y + (Y_SD*rand.nextGaussian()),oldParticles[i].importance_weight);
-						while( transitionCost(oldParticles[i], disturbedParticle) > MAX_ACCEPTABLE_TRANSITION_COST)
+						px = disturbedParticle.x;
+						py = disturbedParticle.y;
+						while(!(px >= 0.0 && px <= maxX && py >= 0.0 && py <= maxY))
 							{ disturbedParticle = new Particle(oldParticles[i].x + (X_SD*rand.nextGaussian()), oldParticles[i].y + (Y_SD*rand.nextGaussian()),oldParticles[i].importance_weight);							
 							}
 						particles[i] = disturbedParticle;
@@ -411,68 +394,7 @@ public class Particle
 				}
 		}
 
-		private float transitionCost(Particle oldParticle, Particle newParticle) 
-		{			
-			double newParticleX = newParticle.x;
-			double newParticleY = newParticle.y;
-			int pixel,x,y;			                            // (x2-x1)*(y-y1) = (y2-y1)*(x-x1) 			
-			double oldParticleX = oldParticle.x;                  
-			double oldParticleY = oldParticle.y;
-						
-			newParticleX = newParticleX/getmMapWidth();
-			newParticleY = newParticleY/getmMapHeight();
-
-			oldParticleX = oldParticleX/getmMapWidth();
-			oldParticleY = oldParticleY/getmMapHeight();
-			
-			double deltaX = (newParticleX*floorPlanWidth-oldParticleX*floorPlanWidth);
-			double deltaY = (newParticleY*floorPlanHeight-oldParticleY*floorPlanHeight);						
-
-			double startX = (oldParticleX*floorPlanWidth);
-			double startY = (oldParticleY*floorPlanHeight);						
-			
-			double stopX = (newParticleX*floorPlanWidth);
-			double stopY = (newParticleY*floorPlanHeight);						
-			int maxRed = 0;
-			
-			x = (int) Math.round(stopX);
-			y = (int) Math.round(stopY);
-			if(x >= 0 && x < floorPlanWidth && y >= 0 && y < floorPlanHeight) 
-			{ 	pixel = mFloorPlan.getPixel(x,y);
-			    maxRed = Color.red(pixel); 
-				if( maxRed == 255)
-				  { return maxRed/255.0f;}
-			}		
-			else 
-			{
-				return 1.0f; 				
-			}					
-			
-			int numSteps = (int) Math.round(Math.max(Math.abs(deltaX),Math.abs(deltaY)));			
-			if(numSteps != 0)
-			{  deltaX /= numSteps; 
-			   deltaY /= numSteps;
-			}
-		    
-			maxRed = 0;			
-			for(int step = 0 ; step < numSteps; step++)
-			{	x = (int) Math.round( startX+ step*deltaX);
-				y = (int) Math.round( startY + step*deltaY);							
-				if(x >= 0 && x < floorPlanWidth && y >= 0 && y < floorPlanHeight) {
-					pixel = mFloorPlan.getPixel(x,y);				
-					maxRed = Math.max(maxRed,Color.red(pixel));					
-					if(maxRed == 255)
-					{ return maxRed/255.0f;}
-				}		
-				else 
-				{
-					return 1.0f; 				
-				}
-			}
-			return (maxRed/255.0f);
-		}
-
-		/** Re-sampling the particles after measurement probability is used to weight all the particles and normalise all the particle weights.
+	  /** Re-sampling the particles after measurement probability is used to weight all the particles and normalise all the particle weights.
 		 *  It gives importance to most preferred particles. 
 		 * @return   particle with replacement.
 		 */
@@ -637,11 +559,10 @@ public class Particle
 			try {
 				String r = (String) (DateFormat.format("yyyy-MM-dd-hh-mm-ss", new java.util.Date()) );
 				String logFileBaseName = "pfLog." + r;
-				System.out.println(STORAGE_DIR_A);
-				mAccelLogFileWriter = new FileWriter(new File(STORAGE_DIR_A, logFileBaseName + ".accel.csv"));
-				mMMSEDistanceFileWriter = new FileWriter(new File(STORAGE_DIR_A, logFileBaseName + ".mmse.csv"));
-				mMagLogFileWriter = new FileWriter(new File(STORAGE_DIR_A, logFileBaseName + ".mag.csv"));
-				mStepLogFileWriter = new FileWriter(new File(STORAGE_DIR_A, logFileBaseName + ".pfsteps.csv"));
+				mAccelLogFileWriter = new FileWriter(new File(STORAGE_DIR_D, logFileBaseName + ".accel.csv"));
+				mMMSEDistanceFileWriter = new FileWriter(new File(STORAGE_DIR_D, logFileBaseName + ".mmse.csv"));
+				mMagLogFileWriter = new FileWriter(new File(STORAGE_DIR_D, logFileBaseName + ".mag.csv"));
+				mStepLogFileWriter = new FileWriter(new File(STORAGE_DIR_D, logFileBaseName + ".pfsteps.csv"));
 			} catch (IOException e) {
 				Log.e(TAG, "Creating and opening log files failed!", e);
 				e.printStackTrace();
@@ -692,48 +613,38 @@ public class Particle
 			}
 		}			
 	
-		@Override
 		public void setParticleCount (float pc) {
 			 particleCount = (int) pc;
 		}
 		    
-		@Override
 		public void setSenseNoise (float sen) {
 			  msenseNoise = (double)sen;
 		}
 			
-		@Override
 		public void setStepNoise (float ste) {
 			  mstepNoise = (double)ste;
 		}
 			
-		@Override
 		public void setTurnNoise (float tun) {
 			  mturnNoise = (double)(tun/mul);
 		}		
-		
-		@Override
 		public float getParticleCount () {
 		   return ((float)particleCount);
 		}
 	    
-		@Override
 		public float getSenseNoise () {
 			return ((float)msenseNoise);
 		}
 		
-		@Override
 		public float getStepNoise () {
 			return ((float)mstepNoise);
 		}
 		
-		@Override
 		public float getTurnNoise () {
 			return ((float)(mul*mturnNoise));
 			
 		}
 		
-		@Override
 		public double getMMSE() {
 			return  mmse;
 		}
