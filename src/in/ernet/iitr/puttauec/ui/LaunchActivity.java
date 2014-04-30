@@ -14,10 +14,15 @@ import android.widget.ListView;
 public class LaunchActivity extends ListActivity {
 	
 	private static final int DEAD_RECKONING_ACTIVITY = 0;
-	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS = 1;
-	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY_KALMAN = 2;
-	private static final int SENSOR_LOGGER_ACTIVITY = 3;
+	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_VECTOR_MAP = 1;
+	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAGNITUDE_MAP = 2;
+	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY_KALMAN = 3;
+	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAGNITUDE = 4;
+	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_VECTOR = 5;
+	private static final int PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAP = 6;
+	private static final int SENSOR_LOGGER_ACTIVITY = 7;
 	private static final String TAG = "LaunchActivity";
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -38,15 +43,39 @@ public class LaunchActivity extends ListActivity {
 			startActivityForResult(launchIntent, DEAD_RECKONING_ACTIVITY);
 			break;
 		
-	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS:
+	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_VECTOR_MAP:
 	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
-	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_RECKONING_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
-	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS);
+	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
+	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_VECTOR_MAP);
 			break;			
-			
+
+	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAGNITUDE_MAP:
+	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
+	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
+	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAGNITUDE_MAP);
+			break;			
+		
+	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_VECTOR:
+	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
+	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
+	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_VECTOR);
+			break;			
+	    
+	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAGNITUDE:
+	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
+	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
+	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAGNITUDE);
+			break;			
+
+	    case PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAP:
+	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
+	    	launchIntent.putExtra(ParticleFilteringActivity .KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_AHRS);	
+	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_AHRS_MAP);
+			break;			
+		
 	    case PARTICLE_FILTER_RECKONING_ACTIVITY_KALMAN:
 	    	launchIntent = new Intent(this, ParticleFilteringActivity.class);
-	    	launchIntent.putExtra(ParticleFilteringActivity.KEY_RECKONING_METHOD, ParticleFilteringActivity.PF_RECKONING_KALMAN);
+	    	launchIntent.putExtra(ParticleFilteringActivity.KEY_ANGLE_METHOD, ParticleFilteringActivity.PF_RECKONING_KALMAN);
 	    	startActivityForResult(launchIntent, PARTICLE_FILTER_RECKONING_ACTIVITY_KALMAN);
 	    	break;
 			

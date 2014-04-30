@@ -171,12 +171,6 @@ public class HWSensorEventListener implements SensorEventListener {
 
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		// Log.i(TAG, "Sensor: " + sensor.getName() + " Accuracy: " + accuracy);
-		// Log.i(TAG, "Sensor: " + sensor.getName() + " MinDelay: " +
-		// sensor.getMinDelay() + "us PowerUsage: " + sensor.getPower() +
-		// "mA Resolution: " + sensor.getResolution() + "sensor-units Type:" +
-		// sensor.getType() + " Vendor:" + sensor.getVendor() + " Version: " +
-		// sensor.getVersion() + "ToString: " + sensor.toString());
 		switch (sensor.getType()) {
 		case Sensor.TYPE_ACCELEROMETER:
 			mAccelAccuracy = accuracy;

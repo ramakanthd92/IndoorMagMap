@@ -93,7 +93,7 @@ public class AHRS implements IAngleAlgorithm{
             double twom_z = 2 * m_z;
 
 
-            //w_x = w_x * Math.PI / 180;
+            //w_x = w_x * Math.PI / 180;                     //this is the error rectified from the code taken from comitti
             //w_y = w_y * Math.PI / 180;
             //w_z = w_z * Math.PI / 180;
             

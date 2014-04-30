@@ -12,8 +12,12 @@
 
     <string-array name="activities">
         <item>Dead Reckoning</item>
-        <item>Particle Filter Reckoning - AHRS</item>
-        <item>Particle Filter Reckoning - KALMAN</item>
+        <item>PF-AHRS-Vector-Map</item>
+        <item>PF-AHRS-Magnitude-Map</item>
+        <item>PF-Kalman-Vector-map</item>
+        <item>PF-AHRS-Magnitude</item>        
+        <item>PF-AHRS-Vector</item>
+        <item>PF-AHRS-Map</item>        
         <item>Sensor Logger Activity</item>
     </string-array>
 

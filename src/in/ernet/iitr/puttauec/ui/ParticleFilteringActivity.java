@@ -46,29 +46,38 @@ public class ParticleFilteringActivity extends Activity {
 	
 	public static final int PF_RECKONING_AHRS = 1;
 	public static final int PF_RECKONING_KALMAN = 2;
-	public static final String KEY_RECKONING_METHOD = "KeyReckoningMethod";
+	public static final int PF_RECKONING_VECTOR = 3;
+	public static final int PF_RECKONING_MAGNITUDE = 4;
+	public static final int PF_RECKONING_MAP_USED = 5;
+	public static final int PF_RECKONING_MAP_NOT_USED = 6;
+	
+	public static final String KEY_ANGLE_METHOD = "KeyReckoningMethod";
+	public static final String KEY_MAGNETIC_FIELD_METHOD = "KeyMagneticFieldMethod";
+	public static final String KEY_MAP_METHOD = "KeyMapMethod";
 
 	// Constants for QRCode data
-		private static final String KEY_VERSION = "Version";
-		private static final int MIN_QRCODE_VERSION = 0x1;
-		private Intent intent;
+	private static final String KEY_VERSION = "Version";
+	private static final int MIN_QRCODE_VERSION = 0x1;
+	private Intent intent;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);		
 		setContentView(R.layout.activity_particle_filtering);
-	    int method = getIntent().getIntExtra(KEY_RECKONING_METHOD, PF_RECKONING_AHRS);
-		
-	    Log.i(TAG, "Starting PFReckoningActivity with angle estimation method: " + method);
-		switch(method) {
-		
+	    int reckon_method = getIntent().getIntExtra(KEY_ANGLE_METHOD, PF_RECKONING_AHRS);		
+	    int field_method = getIntent().getIntExtra(KEY_MAGNETIC_FIELD_METHOD, PF_RECKONING_MAGNITUDE);
+	    int map_method = getIntent().getIntExtra(KEY_MAP_METHOD, PF_RECKONING_MAP_USED);
+	    
+	    Log.i(TAG, "Starting PFReckoningActivity with angle estimation method: " + reckon_method);
+	    Log.i(TAG, "Starting PFReckoningActivity with field estimation method: " + field_method);
+	    Log.i(TAG, "Starting PFReckoningActivity with map estimation method: " + map_method);
+		switch(reckon_method) {		
 		case PF_RECKONING_AHRS:
 			mDeadReckoning = new ParticleFiltering(this, new AHRS());
 			break;
 		case PF_RECKONING_KALMAN:	
 			mDeadReckoning = new ParticleFiltering(this, new KalmanFilter());
-			break;
-		
-		}	
+			break;		
+		}			
 	    intent = new Intent(this, BroadcastService.class);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 	}
@@ -116,8 +125,7 @@ public class ParticleFilteringActivity extends Activity {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		boolean result = super.onCreateOptionsMenu(menu);
 		menu.add(0, DEAD_RECKONING_TRAINING_CONSTANT, 0, "Modify Training Constant");
-		menu.add(0, PARFIL_RECKONING_TRAINING_CONSTANT, 0, "Particle Filter Control");
-		
+		menu.add(0, PARFIL_RECKONING_TRAINING_CONSTANT, 0, "Particle Filter Control");		
 		menu.add(0, PARFIL_RECKONING_RESTART, 0, "Restart Particle Filter Reckoning");
 		menu.add(0, PARFIL_RECKONING_STARTPOS, 0, "Scan Location");
 		if(mDeadReckoning.isLogging()) {
@@ -216,22 +224,19 @@ public class ParticleFilteringActivity extends Activity {
 			case DEAD_RECKONING_TRAINING_CONSTANT:
 				switch(resultCode) {
 					case RESULT_OK:
-						// The DeadReckoningTrainingActivity returns the new values selected
-						// using sliders.
+						// The PFReckoningTrainingActivity returns the new values selected using sliders.
 						mDeadReckoning.setTrainingConstant(data.getFloatExtra(DeadReckoningTrainingActivity.KEY_TRAINING_VALUE, DeadReckoning.DEFAULT_TRAINING_CONSTANT/1000.f));
 						mDeadReckoning.setAccelThreshold(data.getFloatExtra(DeadReckoningTrainingActivity.KEY_THRESHOLD_VALUE, DeadReckoning.DEFAULT_ACCEL_THRESHOLD/1000.f));										
 						break;
 					default:
 						throw new RuntimeException("Unexpected Activity Return value!");
 				}
-				break;
-				
+				break;				
 				
 			case PARFIL_RECKONING_TRAINING_CONSTANT:
 				switch(resultCode) {
 					case RESULT_OK:
-						// The DeadReckoningTrainingActivity returns the new values selected
-						// using sliders.
+						// The PFReckoningTrainingActivity returns the new values selected using sliders.
 						mDeadReckoning.setParticleCount(data.getFloatExtra(ParticlFilterControlActivity.KEY_PARTICLE_COUNT_VALUE,ParticleFiltering.DEFAULT_PARTICLE_COUNT));
 						mDeadReckoning.setStepNoise(data.getFloatExtra(ParticlFilterControlActivity.KEY_STEP_NOISE_VALUE, ParticleFiltering.DEFAULT_STEP_NOISE_THRESHOLD/1000.f));
 						mDeadReckoning.setSenseNoise(data.getFloatExtra(ParticlFilterControlActivity.KEY_SENSE_NOISE_VALUE, ParticleFiltering.DEFAULT_SENSE_NOISE_THRESHOLD/1000.f ));

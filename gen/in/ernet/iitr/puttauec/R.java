@@ -27,10 +27,7 @@ public final class R {
         public static final int ic_action_location_found=0x7f020000;
         public static final int ic_action_play=0x7f020001;
         public static final int ic_launcher=0x7f020002;
-        public static final int library=0x7f020003;
-        public static final int library2=0x7f020004;
-        public static final int library3=0x7f020005;
-        public static final int library4=0x7f020006;
+        public static final int library4=0x7f020003;
     }
     public static final class id {
         public static final int button_scan=0x7f08001b;
