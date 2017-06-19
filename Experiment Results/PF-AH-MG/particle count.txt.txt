@@ -1,0 +1,114 @@
+\pfahmg   2014/05/14   09:47:20
+particles   1203.0
+\pfahmg   2014/05/14   09:49:53
+particles   1546.0
+\pfahmg   2014/05/14   09:52:51
+particles   1509.0
+\pfahmg   2014/05/14   09:57:13
+particles   1680.0
+\pfahmg   2014/05/14   09:59:32
+particles   1680.0
+
+
+\pfahve   2014/05/14   03:18:45
+particles750.0
+\pfahve   2014/05/14   03:21:19
+particles750.0
+\pfahve   2014/05/14   03:23:05
+particles750.0
+\pfahve   2014/05/14   03:25:01
+particles750.0
+\pfahve   2014/05/14   03:27:19
+particles750.0
+\pfahve   2014/05/14   03:29:13
+particles750.0
+\pfahve   2014/05/14   03:31:25
+particles750.0
+\pfahve   2014/05/14   03:34:37
+particles750.0
+\pfahve   2014/05/14   03:43:10
+particles750.0
+\pfahve   2014/05/14   03:44:54
+particles750.0
+\pfahve   2014/05/14   03:45:54
+particles750.0
+\pfahve   2014/05/14   03:46:48
+particles750.0
+
+
+In [2]: 
+pfahmg   2014/05/14   02:55:43
+particles1694.0
+\pfahmg   2014/05/14   02:59:40
+particles1694.0
+\pfahmg   2014/05/14   03:03:48
+particles1694.0
+\pfahmg   2014/05/14   03:06:20
+particles1694.0
+\pfahmg   2014/05/14   03:09:46
+particles1694.0
+\pfahmg   2014/05/14   03:13:37
+particles1694.0
+\pfahmg   2014/05/14   03:15:39
+particles1694.0
+\pfahmg   2014/05/14   03:47:41
+particles1694.0
+\pfahmg   2014/05/14   03:49:45
+particles1694.0
+\pfahmg   2014/05/14   03:50:28
+particles1694.0
+\pfahmg   2014/05/14   03:51:39
+particles1694.0
+\pfahmg   2014/05/14   03:53:49
+particles1694.0
+\pfahmg   2014/05/14   03:55:42
+particles1694.0
+\pfahmg   2014/05/14   03:56:58
+particles1694.0
+\pfahmg   2014/05/14   03:57:55
+particles1694.0
+\pfahmg   2014/05/14   03:58:39
+particles1694.0
+\pfahmg   2014/05/14   09:47:20
+particles1203.0
+\pfahmg   2014/05/14   09:49:53
+particles1546.0
+\pfahmg   2014/05/14   09:52:51
+particles1509.0
+\pfahmg   2014/05/14   09:57:13
+particles1680.0
+\pfahmg   2014/05/14   09:59:32
+particles1680.0
+
+\pfahmgmp   2014/05/14   02:27:05
+particles851.0
+\pfahmgmp   2014/05/14   02:29:20
+particles851.0
+\pfahmgmp   2014/05/14   02:31:42
+particles851.0
+\pfahmgmp   2014/05/14   02:36:09
+particles851.0
+\pfahmgmp   2014/05/14   02:38:19
+particles851.0
+\pfahmgmp   2014/05/14   02:43:32
+particles861.0
+\pfahmgmp   2014/05/14   02:45:40
+particles861.0
+\pfahmgmp   2014/05/14   02:47:49
+particles861.0
+\pfahmgmp   2014/05/14   02:52:37
+particles851.0
+
+
+\pfah_ve_mp   2014/05/14   02:06:21
+particles 254.0
+\pfah_ve_mp   2014/05/14   02:11:32
+particles 254.0
+\pfah_ve_mp   2014/05/14   02:16:30
+particles 254.0
+\pfah_ve_mp   2014/05/14   02:18:52
+particles 254.0
+\pfah_ve_mp   2014/05/14   02:21:11
+particles 254.0
+\pfah_ve_mp   2014/05/14   02:23:51
+particles 254.0
